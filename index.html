@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Consulta de Leis e Decretos – Cacimba de Dentro/PB</title>
+<style>
+:root{
+  --bg:#f4f5f7; --card:#fff; --ink:#1c2430; --muted:#5d6878; --line:#dde1e7;
+  --acc:#1f4e79; --acc2:#163a5a; --acc-soft:#e7eef6;
+  --ord:#1f4e79; --comp:#7a3e9d; --dec:#2e7d4f;
+  --warn-bg:#fff6e0; --warn:#8a5a00; --err:#b3261e; --ok:#2e7d4f;
+  --mark:#ffe58a;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:15px;line-height:1.45}
+button,input,select,textarea{font:inherit;color:inherit}
+a{color:var(--acc)}
+.hidden{display:none!important}
+
+/* login */
+#login-view{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.login-box{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:28px 26px;width:100%;max-width:360px;box-shadow:0 4px 18px rgba(0,0,0,.05)}
+.login-box h1{font-size:19px;margin:0 0 4px}
+.login-box p{margin:0 0 18px;color:var(--muted);font-size:14px}
+label{display:block;font-size:13px;font-weight:600;color:var(--muted);margin:0 0 4px}
+input[type=text],input[type=password],input[type=number],input[type=date],select,textarea{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:7px;background:#fff}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--acc-soft);border-color:var(--acc)}
+.field{margin-bottom:12px}
+.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--acc);background:var(--acc);color:#fff;padding:8px 14px;border-radius:7px;cursor:pointer;font-weight:600;font-size:14px;text-decoration:none;white-space:nowrap}
+.btn:hover{background:var(--acc2)}
+.btn.sec{background:#fff;color:var(--acc)}
+.btn.sec:hover{background:var(--acc-soft)}
+.btn.danger{background:#fff;color:var(--err);border-color:#e5b4b0}
+.btn.danger:hover{background:#fdf0ef}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn:disabled{opacity:.5;cursor:default}
+.msg{font-size:14px;margin-top:10px}
+.msg.err{color:var(--err)} .msg.ok{color:var(--ok)}
+
+/* app */
+header.top{background:var(--acc);color:#fff}
+.top-in{max-width:1080px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.top-in h1{font-size:17px;margin:0;flex:1;min-width:220px}
+.top-in h1 small{display:block;font-weight:400;opacity:.8;font-size:12.5px}
+.user-chip{font-size:13px;opacity:.9}
+.top-in .btn{background:transparent;border-color:rgba(255,255,255,.5)}
+.top-in .btn:hover{background:rgba(255,255,255,.12)}
+nav.tabs{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.tabs-in{max-width:1080px;margin:0 auto;padding:0 12px;display:flex;gap:2px;overflow-x:auto}
+.tabs-in a{padding:12px 14px;text-decoration:none;color:var(--muted);font-weight:600;font-size:14px;border-bottom:3px solid transparent;white-space:nowrap}
+.tabs-in a.on{color:var(--acc);border-bottom-color:var(--acc)}
+.tabs-in a .cnt{font-weight:500;font-size:12px;background:var(--bg);border-radius:10px;padding:1px 7px;margin-left:4px}
+.tabs-in a .pend{background:#f3c94a;color:#4a3500}
+main{max-width:1080px;margin:0 auto;padding:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:14px}
+.banner{background:var(--warn-bg);border:1px solid #f0d58c;color:var(--warn);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.banner b{color:#5c3c00}
+
+/* search */
+.search-grid{display:grid;grid-template-columns:1fr 130px 120px 170px;gap:10px;align-items:end}
+.search-grid.dec{grid-template-columns:1fr 130px 120px}
+@media(max-width:760px){.search-grid,.search-grid.dec{grid-template-columns:1fr 1fr}.search-grid .f-text{grid-column:1/-1}}
+.search-actions{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:10px;flex-wrap:wrap}
+.hint{font-size:12.5px;color:var(--muted)}
+.res-head{display:flex;justify-content:space-between;align-items:center;margin:4px 2px 10px;color:var(--muted);font-size:14px;gap:10px;flex-wrap:wrap}
+.item{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:13px 16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s}
+.item:hover{border-color:var(--acc)}
+.item-top{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+.item-title{font-weight:700;font-size:15.5px}
+.item-date{color:var(--muted);font-size:13px}
+.badge{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:10px;color:#fff;letter-spacing:.2px}
+.b-ordinaria{background:var(--ord)} .b-complementar{background:var(--comp)} .b-decreto{background:var(--dec)}
+.b-scan{background:#fff;color:var(--warn);border:1px solid #e8c766}
+.b-new{background:#f3c94a;color:#4a3500}
+.item-ementa{margin-top:5px}
+.item-snip{margin-top:6px;font-size:13.5px;color:var(--muted);border-left:3px solid var(--line);padding-left:9px}
+mark{background:var(--mark);padding:0 1px;border-radius:2px;color:inherit}
+.empty{text-align:center;color:var(--muted);padding:40px 10px}
+
+/* detail */
+.det-head{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.det-head h2{margin:0 0 4px;font-size:20px}
+.det-meta{color:var(--muted);font-size:14px}
+.det-actions{display:flex;gap:6px;flex-wrap:wrap}
+.det-ementa{background:var(--acc-soft);border-radius:8px;padding:10px 14px;margin:14px 0;font-weight:600}
+.det-obs{background:var(--warn-bg);color:var(--warn);border-radius:8px;padding:9px 14px;margin:0 0 14px;font-size:14px}
+.det-text{white-space:pre-wrap;font-family:Georgia,"Times New Roman",serif;font-size:15.5px;line-height:1.6;word-wrap:break-word}
+.matchnav{position:sticky;top:46px;z-index:4;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px 10px;display:flex;gap:8px;align-items:center;font-size:13.5px;margin-bottom:10px}
+mark.cur{background:#ffb14a}
+
+/* forms */
+.form-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.form-grid .span2{grid-column:span 2}.form-grid .span4{grid-column:1/-1}
+@media(max-width:760px){.form-grid{grid-template-columns:1fr 1fr}.form-grid .span4,.form-grid .span2{grid-column:1/-1}}
+textarea{min-height:260px;resize:vertical;font-family:Georgia,serif}
+textarea.short{min-height:70px;font-family:inherit}
+h3{margin:0 0 12px;font-size:16px}
+table.tbl{width:100%;border-collapse:collapse;font-size:14px}
+table.tbl th,table.tbl td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+table.tbl th{color:var(--muted);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.3px}
+.steps{margin:6px 0 0;padding-left:20px}
+.steps li{margin-bottom:5px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.drop{border:2px dashed var(--line);border-radius:9px;padding:14px;text-align:center;color:var(--muted);font-size:14px}
+.drop.over{border-color:var(--acc);background:var(--acc-soft)}
+@media print{
+  header.top,nav.tabs,.det-actions,.banner,.matchnav,#back-link{display:none!important}
+  body{background:#fff} .card{border:none;padding:0} mark{background:none}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-view">
+  <form class="login-box" id="login-form" autocomplete="on">
+    <h1>Consulta de Leis e Decretos</h1>
+    <p>Município de Cacimba de Dentro/PB</p>
+    <div class="field"><label for="login">Usuário</label><input type="text" id="login" autocomplete="username" autocapitalize="none" required></div>
+    <div class="field"><label for="senha">Senha</label><input type="password" id="senha" autocomplete="current-password" required></div>
+    <button class="btn" id="login-btn" type="submit" style="width:100%;justify-content:center">Entrar</button>
+    <div class="msg" id="login-msg"></div>
+  </form>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <header class="top"><div class="top-in">
+    <h1>Consulta de Leis e Decretos<small>Município de Cacimba de Dentro/PB</small></h1>
+    <span class="user-chip" id="user-chip"></span>
+    <button class="btn small" id="logout">Sair</button>
+  </div></header>
+  <nav class="tabs"><div class="tabs-in" id="tabs"></div></nav>
+  <main id="main"></main>
+</div>
+
+<script>
+'use strict';
+/* ================= utilidades ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const b64e = buf => { const b = new Uint8Array(buf); let s=''; for (let i=0;i<b.length;i+=0x8000) s += String.fromCharCode.apply(null, b.subarray(i,i+0x8000)); return btoa(s); };
+const b64d = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+const norm = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const fmtData = d => { if(!d) return ''; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; };
+const fmtDataExt = d => { if(!d) return ''; const [y,m,dd]=d.split('-'); return `${+dd} de ${MESES[+m-1]} de ${y}`; };
+const agora = () => { const d=new Date(), p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; };
+const fmtQuando = q => q ? q.replace(/^(\d{4})-(\d\d)-(\d\d)T(\d\d:\d\d).*/, '$3/$2/$1 $4') : '';
+
+const ESPECIE = { ordinaria:'Lei Ordinária', complementar:'Lei Complementar', decreto:'Decreto' };
+const especieDe = it => it.kind === 'decreto' ? 'decreto' : it.tipo;
+const numFmt = it => (it.tipo === 'complementar' ? String(it.numero).padStart(3,'0') : String(it.numero));
+const titulo = it => it.kind === 'decreto' ? `Decreto nº ${numFmt(it)}/${it.ano}`
+  : `Lei ${it.tipo==='complementar'?'Complementar ':''}nº ${numFmt(it)}/${it.ano}`;
+const makeId = it => `${it.kind}-${it.kind==='decreto'?'dc':(it.tipo==='complementar'?'lc':'lo')}-${it.ano}-${it.numero}`;
+
+/* ================= criptografia ================= */
+const enc = new TextEncoder(), dec = new TextDecoder();
+async function aesKey(raw){ return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt','decrypt']); }
+async function encryptBytes(key, bytes){
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, bytes));
+  const out = new Uint8Array(12 + ct.length); out.set(iv); out.set(ct, 12); return out;
+}
+async function decryptBytes(key, data){
+  data = new Uint8Array(data);
+  return new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv:data.slice(0,12)}, key, data.slice(12)));
+}
+async function gz(bytes, mode){
+  const s = new Blob([bytes]).stream().pipeThrough(mode==='c' ? new CompressionStream('gzip') : new DecompressionStream('gzip'));
+  return new Uint8Array(await new Response(s).arrayBuffer());
+}
+async function pwKey(pw, salt, iter){
+  const base = await crypto.subtle.importKey('raw', enc.encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2', hash:'SHA-256', salt, iterations:iter}, base, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+}
+async function wrapFor(login, nome, perfil, pw){
+  const salt = crypto.getRandomValues(new Uint8Array(16)), iter = 310000;
+  const k = await pwKey(pw, salt, iter);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ch = await crypto.subtle.encrypt({name:'AES-GCM', iv}, k, S.rawKey);
+  return { login, nome, perfil, salt:b64e(salt), iter, iv:b64e(iv), chave:b64e(ch) };
+}
+
+/* ================= armazenamento local (IndexedDB) ================= */
+const idb = {
+  db: null,
+  async open(){ if(this.db) return this.db; this.db = await new Promise((res,rej)=>{ const r=indexedDB.open('leis-cacimba',1); r.onupgradeneeded=()=>r.result.createObjectStore('kv'); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); return this.db; },
+  async get(k){ try{ const db=await this.open(); return await new Promise((res,rej)=>{ const r=db.transaction('kv').objectStore('kv').get(k); r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }catch(e){ return undefined; } },
+  async set(k,v){ const db=await this.open(); return new Promise((res,rej)=>{ const t=db.transaction('kv','readwrite'); t.objectStore('kv').put(v,k); t.oncomplete=res; t.onerror=()=>rej(t.error); }); },
+  async del(k){ const db=await this.open(); return new Promise((res,rej)=>{ const t=db.transaction('kv','readwrite'); t.objectStore('kv').delete(k); t.oncomplete=res; t.onerror=()=>rej(t.error); }); },
+};
+
+/* ================= estado ================= */
+const S = {
+  rawKey:null, key:null, user:null,
+  dados:null,            // {versao, rev, atualizado, itens, historico}
+  serverRev:0,
+  usuarios:null,         // conteúdo de usuarios.json (possivelmente alterado localmente)
+  usuariosAlterados:false,
+  pendente:false,        // dados alterados e não publicados
+  anexosPend:{},         // caminho -> Uint8Array cifrado
+  busca:{ lei:{q:'',num:'',ano:'',tipo:''}, decreto:{q:'',num:'',ano:''} },
+  limite:{ lei:40, decreto:40 },
+};
+
+async function fetchBin(path){ const r = await fetch(path + '?v=' + Date.now(), {cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status+' em '+path); return new Uint8Array(await r.arrayBuffer()); }
+async function fetchJSON(path){ const r = await fetch(path + '?v=' + Date.now(), {cache:'no-store'}); if(!r.ok) throw new Error('HTTP '+r.status+' em '+path); return r.json(); }
+
+function prepIndex(){
+  for (const it of S.dados.itens){
+    it._n = norm(it.ementa + '\n' + it.texto);
+  }
+}
+
+async function carregarDados(){
+  const bin = await fetchBin('dados.enc');
+  const d = JSON.parse(dec.decode(await gz(await decryptBytes(S.key, bin), 'd')));
+  S.serverRev = d.rev || 0;
+  S.dados = d; S.pendente = false; S.anexosPend = {};
+  // alterações locais ainda não publicadas
+  const loc = await idb.get('pendente');
+  if (loc && loc.data){
+    try{
+      const ld = JSON.parse(dec.decode(await gz(await decryptBytes(S.key, loc.data), 'd')));
+      if (ld.baseRev === S.serverRev){ S.dados = ld; S.pendente = true; S.anexosPend = loc.anexos || {}; }
+      else if (ld.baseRev < S.serverRev){ S.conflito = ld; S.conflitoAnexos = loc.anexos || {}; }
+      else { S.dados = ld; S.pendente = true; S.anexosPend = loc.anexos || {}; }
+    }catch(e){ console.warn('pendente ilegível', e); }
+  }
+  const lu = await idb.get('usuarios');
+  if (lu && lu.base === JSON.stringify(S.usuariosServidor)) { S.usuarios = lu.atual; S.usuariosAlterados = true; }
+  prepIndex();
+}
+
+async function salvarLocal(acao){
+  S.dados.historico = S.dados.historico || [];
+  S.dados.historico.push({quando:agora(), quem:S.user.login, acao});
+  S.dados.atualizado = agora();
+  if (S.dados.baseRev === undefined || !S.pendente) S.dados.baseRev = S.serverRev;
+  S.dados.rev = S.serverRev + 1;
+  const limpo = JSON.stringify(S.dados, (k,v)=> k==='_n' ? undefined : v);
+  const data = await encryptBytes(S.key, await gz(enc.encode(limpo), 'c'));
+  await idb.set('pendente', {data, anexos:S.anexosPend});
+  S.pendente = true;
+  prepIndex();
+}
+
+/* ================= login ================= */
+$('#login-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('#login-msg'); msg.className='msg'; msg.textContent='Verificando…';
+  $('#login-btn').disabled = true;
+  try{
+    const login = $('#login').value.trim().toLowerCase(), pw = $('#senha').value;
+    S.usuariosServidor = await fetchJSON('usuarios.json');
+    const lu = await idb.get('usuarios');
+    let lista = S.usuariosServidor;
+    if (lu && lu.base === JSON.stringify(S.usuariosServidor)) lista = lu.atual;
+    const u = lista.usuarios.find(x => x.login === login);
+    if (!u) throw new Error('cred');
+    let raw;
+    try{
+      const k = await pwKey(pw, b64d(u.salt), u.iter);
+      raw = new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM', iv:b64d(u.iv)}, k, b64d(u.chave)));
+    }catch(_){ throw new Error('cred'); }
+    await entrar(raw, u);
+    try{ sessionStorage.setItem('sess', JSON.stringify({k:b64e(raw), login:u.login})); }catch(_){}
+  }catch(err){
+    msg.className='msg err';
+    msg.textContent = err.message==='cred' ? 'Usuário ou senha incorretos.'
+      : (location.protocol==='file:' ? 'Abra o sistema pelo endereço do site (GitHub Pages). Aberto direto do computador, ele não consegue carregar os dados.' : 'Não foi possível carregar os dados: ' + err.message);
+  }finally{ $('#login-btn').disabled = false; }
+});
+
+async function entrar(raw, u){
+  S.rawKey = raw; S.key = await aesKey(raw); S.user = u;
+  S.usuarios = S.usuariosServidor;
+  await carregarDados();
+  $('#login-view').classList.add('hidden'); $('#app').classList.remove('hidden');
+  $('#user-chip').textContent = (u.nome || u.login) + (u.perfil==='admin' && norm(u.nome) !== 'administrador' ? ' · administrador' : '');
+  $('#senha').value='';
+  route();
+}
+
+$('#logout').onclick = () => { try{ sessionStorage.removeItem('sess'); }catch(_){} location.hash=''; location.reload(); };
+
+(async function autoLogin(){
+  let s; try{ s = JSON.parse(sessionStorage.getItem('sess')||'null'); }catch(_){}
+  if (!s) return;
+  try{
+    S.usuariosServidor = await fetchJSON('usuarios.json');
+    const lu = await idb.get('usuarios');
+    const lista = (lu && lu.base === JSON.stringify(S.usuariosServidor)) ? lu.atual : S.usuariosServidor;
+    const u = lista.usuarios.find(x=>x.login===s.login);
+    if (!u) return;
+    await entrar(b64d(s.k), u);
+  }catch(e){ console.warn(e); try{ sessionStorage.removeItem('sess'); }catch(_){} }
+})();
+
+/* ================= navegação ================= */
+const isAdmin = () => S.user && S.user.perfil === 'admin';
+window.addEventListener('hashchange', () => { if (S.dados) route(); });
+
+function renderTabs(cur){
+  const nL = S.dados.itens.filter(i=>i.kind==='lei').length, nD = S.dados.itens.filter(i=>i.kind==='decreto').length;
+  const t = [['#/leis','Leis',nL],['#/decretos','Decretos',nD]];
+  if (isAdmin()){
+    t.push(['#/incluir','Incluir norma',null]);
+    t.push(['#/usuarios','Usuários',null]);
+    t.push(['#/publicar','Publicar alterações', (S.pendente||S.usuariosAlterados) ? '!' : null]);
+  }
+  $('#tabs').innerHTML = t.map(([h,l,c]) => `<a href="${h}" class="${cur===h?'on':''}">${l}${c!==null&&c!==undefined?` <span class="cnt ${c==='!'?'pend':''}">${c}</span>`:''}</a>`).join('');
+}
+
+function bannerPend(){
+  let h = '';
+  if (S.conflito) h += `<div class="banner">⚠️ <span>Há alterações feitas neste navegador sobre uma versão antiga dos dados. Alguém publicou uma versão mais nova depois disso.</span> ${isAdmin()?'<a class="btn small sec" href="#/publicar">Ver opções</a>':''}</div>`;
+  if (isAdmin() && (S.pendente || S.usuariosAlterados))
+    h += `<div class="banner">📤 <span><b>Alterações não publicadas.</b> Elas só aparecem neste navegador até você baixar os arquivos e substituí-los no GitHub.</span> <a class="btn small sec" href="#/publicar">Publicar</a></div>`;
+  return h;
+}
+
+function route(){
+  const h = location.hash || '#/leis';
+  const m = h.match(/^#\/(leis|decretos|ver|incluir|editar|usuarios|publicar)(?:\/(.*))?$/);
+  const pg = m ? m[1] : 'leis', arg = m && m[2] ? decodeURIComponent(m[2]) : '';
+  const tabOf = {leis:'#/leis',decretos:'#/decretos',ver:null,incluir:'#/incluir',editar:'#/incluir',usuarios:'#/usuarios',publicar:'#/publicar'};
+  let tab = tabOf[pg];
+  if (pg==='ver'){ const it = S.dados.itens.find(i=>i.id===arg); tab = it && it.kind==='decreto' ? '#/decretos' : '#/leis'; }
+  renderTabs(tab);
+  window.scrollTo(0,0);
+  if ((pg==='incluir'||pg==='editar'||pg==='usuarios'||pg==='publicar') && !isAdmin()){ location.hash='#/leis'; return; }
+  if (pg==='leis') return viewBusca('lei');
+  if (pg==='decretos') return viewBusca('decreto');
+  if (pg==='ver') return viewNorma(arg);
+  if (pg==='incluir') return viewForm(null, arg);
+  if (pg==='editar') return viewForm(arg);
+  if (pg==='usuarios') return viewUsuarios();
+  if (pg==='publicar') return viewPublicar();
+}
+
+/* ================= busca ================= */
+function parseTermos(q){
+  const out = []; const re = /"([^"]+)"|(\S+)/g; let m;
+  while ((m = re.exec(q))) { const t = norm((m[1]||m[2]).trim()); if (t) out.push(t); }
+  return out;
+}
+
+function filtrar(kind){
+  const b = S.busca[kind];
+  const termos = parseTermos(b.q);
+  let num = String(b.num||'').trim(), anoN = b.ano;
+  const mm = num.match(/^0*(\d+)\s*\/\s*(\d{4})$/); if (mm){ num = mm[1]; anoN = mm[2]; }
+  num = num.replace(/^0+(?=\d)/,'');
+  return S.dados.itens.filter(it => {
+    if (it.kind !== kind) return false;
+    if (kind==='lei' && b.tipo && it.tipo !== b.tipo) return false;
+    if (anoN && String(it.ano) !== String(anoN)) return false;
+    if (num && String(it.numero) !== num) return false;
+    for (const t of termos) if (!it._n.includes(t)) return false;
+    return true;
+  }).sort((a,b)=> (b.ano-a.ano) || ((b.data||'').localeCompare(a.data||'')) || (b.numero-a.numero));
+}
+
+/* destaca termos ignorando acentos/maiúsculas */
+function destacar(texto, termos, cls){
+  texto = String(texto||'');
+  if (!termos.length) return esc(texto);
+  let n = '', map = [];
+  for (let i=0;i<texto.length;i++){ const c = norm(texto[i]); for (let j=0;j<c.length;j++){ n += c[j]; map.push(i); } }
+  const ranges = [];
+  for (const t of termos){ let p = 0; while ((p = n.indexOf(t, p)) !== -1){ ranges.push([map[p], map[p+t.length-1]+1]); p += t.length; } }
+  if (!ranges.length) return esc(texto);
+  ranges.sort((a,b)=>a[0]-b[0]);
+  const merged = []; for (const r of ranges){ const l = merged[merged.length-1]; if (l && r[0] <= l[1]) l[1] = Math.max(l[1], r[1]); else merged.push([...r]); }
+  let out = '', last = 0;
+  for (const [a,b] of merged){ out += esc(texto.slice(last,a)) + `<mark${cls?` class="${cls}"`:''}>` + esc(texto.slice(a,b)) + '</mark>'; last = b; }
+  return out + esc(texto.slice(last));
+}
+
+function trecho(it, termos){
+  if (!termos.length) return '';
+  const nt = norm(it.texto);
+  // começa depois da ementa, para não repetir o que já aparece no resultado
+  let ini = 0; const ne = norm(it.ementa).slice(0, 60);
+  if (ne){ const pe = nt.indexOf(ne); if (pe !== -1) ini = pe + norm(it.ementa).length; }
+  let pos = -1;
+  for (const t of termos){ const p = nt.indexOf(t, ini); if (p !== -1 && (pos === -1 || p < pos)) pos = p; }
+  if (pos === -1) return '';
+  const a = Math.max(0, pos - 90), b = Math.min(it.texto.length, pos + 170);
+  const s = (a>0?'…':'') + it.texto.slice(a,b).replace(/\s+/g,' ') + (b<it.texto.length?'…':'');
+  return destacar(s, termos);
+}
+
+function viewBusca(kind){
+  const b = S.busca[kind];
+  const anos = [...new Set(S.dados.itens.filter(i=>i.kind===kind).map(i=>i.ano))].sort((a,b)=>b-a);
+  const total = S.dados.itens.filter(i=>i.kind===kind).length;
+  $('#main').innerHTML = bannerPend() + `
+  <div class="card">
+    <div class="search-grid ${kind==='decreto'?'dec':''}">
+      <div class="f-text"><label for="f-q">Pesquisar no texto</label><input type="text" id="f-q" placeholder="Ex.: piso salarial, conselho, &quot;crédito especial&quot;" value="${esc(b.q)}"></div>
+      <div><label for="f-num">Número</label><input type="text" id="f-num" inputmode="numeric" placeholder="Ex.: 230" value="${esc(b.num)}"></div>
+      <div><label for="f-ano">Ano</label><select id="f-ano"><option value="">Todos</option>${anos.map(a=>`<option ${String(a)===String(b.ano)?'selected':''}>${a}</option>`).join('')}</select></div>
+      ${kind==='lei'?`<div><label for="f-tipo">Tipo</label><select id="f-tipo">
+        <option value="">Todas</option>
+        <option value="ordinaria" ${b.tipo==='ordinaria'?'selected':''}>Só ordinárias</option>
+        <option value="complementar" ${b.tipo==='complementar'?'selected':''}>Só complementares</option></select></div>`:''}
+    </div>
+    <div class="search-actions">
+      <span class="hint">A busca ignora acentos e maiúsculas. Várias palavras: aparecem todas. Use aspas para a expressão exata.</span>
+      <button class="btn sec small" id="f-clear">Limpar</button>
+    </div>
+  </div>
+  <div class="res-head"><span id="res-count"></span>${isAdmin()?`<a class="btn small" href="#/incluir/${kind}">+ Incluir ${kind==='lei'?'lei':'decreto'}</a>`:''}</div>
+  <div id="res"></div>`;
+
+  const run = () => {
+    const lst = filtrar(kind), termos = parseTermos(b.q);
+    const lim = S.limite[kind];
+    const filtros = b.q || b.num || b.ano || (kind==='lei' && b.tipo);
+    $('#res-count').textContent = total === 0 ? '' : (filtros ? `${lst.length} de ${total} ${kind==='lei'?(lst.length===1?'lei encontrada':'leis encontradas'):(lst.length===1?'decreto encontrado':'decretos encontrados')}` : `${total} ${kind==='lei'?(total===1?'lei cadastrada':'leis cadastradas'):(total===1?'decreto cadastrado':'decretos cadastrados')}`);
+    if (total === 0){
+      $('#res').innerHTML = `<div class="card empty">Nenhum decreto cadastrado ainda.${isAdmin()?`<br><br><a class="btn" href="#/incluir/decreto">Incluir o primeiro decreto</a>`:''}</div>`; return;
+    }
+    if (!lst.length){ $('#res').innerHTML = `<div class="card empty">Nenhum resultado. Tente outras palavras ou tire algum filtro.</div>`; return; }
+    $('#res').innerHTML = lst.slice(0, lim).map(it => `
+      <div class="item" data-id="${esc(it.id)}" tabindex="0">
+        <div class="item-top">
+          <span class="item-title">${esc(titulo(it))}</span>
+          <span class="badge b-${especieDe(it)}">${ESPECIE[especieDe(it)]}</span>
+          ${it.fonte==='digitalizada'?'<span class="badge b-scan">digitalizada</span>':''}
+          ${it._novo?'<span class="badge b-new">não publicada</span>':''}
+          <span class="item-date">${fmtData(it.data)}</span>
+        </div>
+        <div class="item-ementa">${destacar(it.ementa || '(sem ementa)', termos)}</div>
+        ${termos.length ? (s => s ? `<div class="item-snip">${s}</div>` : '')(trecho(it, termos)) : ''}
+      </div>`).join('') + (lst.length > lim ? `<div style="text-align:center"><button class="btn sec" id="mais">Mostrar mais (${lst.length - lim} restantes)</button></div>` : '');
+    const mais = $('#mais'); if (mais) mais.onclick = () => { S.limite[kind] += 40; run(); };
+  };
+  let tmr;
+  const upd = () => { b.q = $('#f-q').value; b.num = $('#f-num').value; b.ano = $('#f-ano').value; if (kind==='lei') b.tipo = $('#f-tipo').value; S.limite[kind] = 40; clearTimeout(tmr); tmr = setTimeout(run, 120); };
+  ['#f-q','#f-num'].forEach(s => $(s).addEventListener('input', upd));
+  ['#f-ano','#f-tipo'].forEach(s => { const el=$(s); if (el) el.addEventListener('change', upd); });
+  $('#f-clear').onclick = () => { S.busca[kind] = kind==='lei'?{q:'',num:'',ano:'',tipo:''}:{q:'',num:'',ano:''}; viewBusca(kind); };
+  $('#res').addEventListener('click', e => { const el = e.target.closest('.item'); if (el) location.hash = '#/ver/' + encodeURIComponent(el.dataset.id); });
+  $('#res').addEventListener('keydown', e => { if (e.key==='Enter'){ const el = e.target.closest('.item'); if (el) location.hash = '#/ver/' + encodeURIComponent(el.dataset.id); } });
+  run();
+  if (!b.q && !b.num) $('#f-q').focus();
+}
+
+/* ================= visualizar norma ================= */
+async function abrirAnexo(it){
+  try{
+    let data = S.anexosPend[it.anexo];
+    if (!data) data = await fetchBin(it.anexo);
+    const pdf = await decryptBytes(S.key, data);
+    const url = URL.createObjectURL(new Blob([pdf], {type:'application/pdf'}));
+    const w = window.open(url, '_blank');
+    if (!w){ const a = document.createElement('a'); a.href = url; a.download = it.anexoNome || 'original.pdf'; a.click(); }
+    setTimeout(()=>URL.revokeObjectURL(url), 120000);
+  }catch(e){ alert('Não foi possível abrir o original: ' + e.message + (S.anexosPend[it.anexo]?'':'\nSe a norma foi incluída agora, publique o arquivo do anexo no GitHub.')); }
+}
+
+function viewNorma(id){
+  const it = S.dados.itens.find(i=>i.id===id);
+  if (!it){ $('#main').innerHTML = `<div class="card empty">Norma não encontrada.<br><br><a href="#/leis">Voltar</a></div>`; return; }
+  const kind = it.kind, termos = parseTermos(S.busca[kind].q);
+  const back = kind==='decreto' ? '#/decretos' : '#/leis';
+  $('#main').innerHTML = bannerPend() + `
+  <p style="margin:0 0 10px"><a id="back-link" href="${back}">← Voltar aos resultados</a></p>
+  <div class="card">
+    <div class="det-head">
+      <div>
+        <h2>${esc(titulo(it))}</h2>
+        <div class="det-meta"><span class="badge b-${especieDe(it)}">${ESPECIE[especieDe(it)]}</span>
+          ${it.data ? ' &nbsp;' + esc(fmtDataExt(it.data)) : ''}${it.fonte==='digitalizada'?' &nbsp;<span class="badge b-scan">digitalizada</span>':''}</div>
+      </div>
+      <div class="det-actions">
+        ${it.anexo?`<button class="btn sec small" id="b-orig">📄 Ver original (PDF)</button>`:''}
+        <button class="btn sec small" id="b-copy">Copiar texto</button>
+        <button class="btn sec small" onclick="window.print()">Imprimir</button>
+        ${isAdmin()?`<a class="btn sec small" href="#/editar/${encodeURIComponent(it.id)}">Editar</a><button class="btn danger small" id="b-del">Excluir</button>`:''}
+      </div>
+    </div>
+    ${it.ementa?`<div class="det-ementa">${destacar(it.ementa, termos)}</div>`:''}
+    ${it.obs?`<div class="det-obs">⚠️ ${esc(it.obs)}</div>`:''}
+    <div id="mnav"></div>
+    <div class="det-text" id="det-text">${destacar(it.texto, termos, 'hit')}</div>
+  </div>`;
+  if (it.anexo) $('#b-orig').onclick = () => abrirAnexo(it);
+  $('#b-copy').onclick = async () => { try{ await navigator.clipboard.writeText(titulo(it) + '\n\n' + it.texto); $('#b-copy').textContent='Copiado ✓'; }catch(_){ alert('Não foi possível copiar.'); } };
+  if (isAdmin()) $('#b-del').onclick = async () => {
+    if (!confirm(`Excluir ${titulo(it)}? A exclusão só vale para todos depois de publicar.`)) return;
+    S.dados.itens = S.dados.itens.filter(x=>x.id!==it.id);
+    if (it.anexo && S.anexosPend[it.anexo]) delete S.anexosPend[it.anexo];
+    await salvarLocal(`Excluiu ${titulo(it)}`);
+    location.hash = back;
+  };
+  const hits = [...document.querySelectorAll('#det-text mark.hit')];
+  if (hits.length){
+    let cur = 0;
+    $('#mnav').innerHTML = `<div class="matchnav"><span id="mn-i"></span><button class="btn sec small" id="mn-p">↑ Anterior</button><button class="btn sec small" id="mn-n">↓ Próxima</button></div>`;
+    const go = i => { hits[cur].classList.remove('cur'); cur = (i + hits.length) % hits.length; hits[cur].classList.add('cur'); hits[cur].scrollIntoView({block:'center'}); $('#mn-i').textContent = `Ocorrência ${cur+1} de ${hits.length} no texto`; };
+    $('#mn-p').onclick = () => go(cur-1); $('#mn-n').onclick = () => go(cur+1);
+    hits[0].classList.add('cur'); $('#mn-i').textContent = `Ocorrência 1 de ${hits.length} no texto`;
+  }
+}
+
+/* ================= leitura de .docx no navegador ================= */
+async function lerDocx(file){
+  const buf = new Uint8Array(await file.arrayBuffer()), dv = new DataView(buf.buffer);
+  let eocd = -1; for (let i = buf.length - 22; i >= Math.max(0, buf.length - 70000); i--) if (dv.getUint32(i, true) === 0x06054b50){ eocd = i; break; }
+  if (eocd < 0) throw new Error('arquivo .docx inválido');
+  const n = dv.getUint16(eocd + 10, true); let p = dv.getUint32(eocd + 16, true);
+  for (let k = 0; k < n; k++){
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true);
+    const fl = dv.getUint16(p + 28, true), el = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true), lho = dv.getUint32(p + 42, true);
+    const name = dec.decode(buf.subarray(p + 46, p + 46 + fl));
+    if (name === 'word/document.xml'){
+      const start = lho + 30 + dv.getUint16(lho + 26, true) + dv.getUint16(lho + 28, true);
+      let data = buf.subarray(start, start + csize);
+      if (method === 8){ const s = new Blob([data]).stream().pipeThrough(new DecompressionStream('deflate-raw')); data = new Uint8Array(await new Response(s).arrayBuffer()); }
+      const xml = new DOMParser().parseFromString(dec.decode(data), 'application/xml');
+      const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+      const paras = [];
+      for (const pEl of xml.getElementsByTagNameNS(W, 'p')){
+        let t = '';
+        const walk = node => { for (const c of node.childNodes){ if (c.namespaceURI === W){ if (c.localName==='t') t += c.textContent; else if (c.localName==='tab') t += '\t'; else if (c.localName==='br'||c.localName==='cr') t += '\n'; else if (c.localName!=='p') walk(c); } } };
+        walk(pEl); paras.push(t);
+      }
+      return paras.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+    }
+    p += 46 + fl + el + cl;
+  }
+  throw new Error('não encontrei o texto dentro do .docx');
+}
+
+function extrairCabecalho(texto){
+  const r = {};
+  const linhas = texto.split('\n').map(s=>s.trim());
+  const reL = /^\s*(LEI|DECRETO)\s*(MUNICIPAL|COMPLEMENTAR)?\s*(MUNICIPAL|COMPLEMENTAR)?\s*N\s*[°º.o]*\s*\.?\s*0*(\d+)\s*\/\s*(\d{4})(.*)$/i;
+  let hi = -1;
+  for (let i=0;i<Math.min(linhas.length,30);i++){ const m = linhas[i].match(reL); if (m){ hi=i;
+    const esp = m[1].toUpperCase(), comp = /COMPLEMENTAR/i.test((m[2]||'')+(m[3]||''));
+    r.especie = esp==='DECRETO' ? 'decreto' : (comp ? 'complementar' : 'ordinaria');
+    r.numero = m[4]; r.ano = m[5];
+    const d = norm(m[6]).match(/(\d{1,2})\s*(?:º|o)?\s*de\W*\s*([a-z]+)\W*\s*de\s*(\d{4})/);
+    if (d){ const mi = MESES.map(norm).indexOf(d[2]); if (mi>=0) r.data = `${d[3]}-${String(mi+1).padStart(2,'0')}-${d[1].padStart(2,'0')}`; }
+    break; } }
+  if (hi >= 0){
+    const em = [];
+    for (let i=hi+1;i<linhas.length;i++){ const s = linhas[i]; if (!s){ if (em.length) break; else continue; } if (/^(o\s+)?prefeit|^art/i.test(norm(s)) || /prefeito constitucional/i.test(s)) break; em.push(s); }
+    r.ementa = em.join(' ').replace(/\s+/g,' ').trim();
+    r.texto = linhas.slice(hi).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+  }
+  return r;
+}
+
+/* ================= incluir / editar ================= */
+function viewForm(editId, kindHint){
+  const it = editId ? S.dados.itens.find(i=>i.id===editId) : null;
+  if (editId && !it){ $('#main').innerHTML = `<div class="card empty">Norma não encontrada.</div>`; return; }
+  const esp = it ? especieDe(it) : (kindHint==='decreto' ? 'decreto' : 'ordinaria');
+  let novoAnexo = null;  // File
+  let removerAnexo = false;
+  $('#main').innerHTML = bannerPend() + `
+  <div class="card">
+    <h3>${it ? 'Editar ' + esc(titulo(it)) : 'Incluir nova norma'}</h3>
+    ${it ? '' : `<div class="drop" id="drop">Para preencher automaticamente, arraste aqui o arquivo <b>.docx</b> da norma ou <label style="display:inline;color:var(--acc);cursor:pointer;text-decoration:underline">escolha o arquivo<input type="file" id="docx" accept=".docx,.txt" class="hidden"></label>.<br><span class="hint">Arquivos .doc antigos não são lidos no navegador: abra no Word, copie o texto e cole no campo abaixo.</span></div><div class="msg" id="docx-msg"></div><br>`}
+    <div class="form-grid">
+      <div><label for="e-esp">Espécie</label><select id="e-esp">
+        <option value="ordinaria">Lei Ordinária</option><option value="complementar">Lei Complementar</option><option value="decreto">Decreto</option></select></div>
+      <div><label for="e-num">Número</label><input type="number" id="e-num" min="1" value="${it?it.numero:''}"></div>
+      <div><label for="e-data">Data</label><input type="date" id="e-data" value="${it?esc(it.data||''):''}"></div>
+      <div><label for="e-ano">Ano</label><input type="number" id="e-ano" min="1900" max="2100" value="${it?it.ano:''}"></div>
+      <div class="span4"><label for="e-ementa">Ementa</label><textarea class="short" id="e-ementa">${it?esc(it.ementa):''}</textarea></div>
+      <div class="span4"><label for="e-texto">Texto integral</label><textarea id="e-texto">${it?esc(it.texto):''}</textarea></div>
+      <div class="span4"><label for="e-obs">Observação (opcional)</label><input type="text" id="e-obs" value="${it?esc(it.obs||''):''}" placeholder="Ex.: revogada pela Lei nº ..."></div>
+      <div class="span4"><label>Original em PDF (opcional)</label>
+        <div class="row">${it && it.anexo ? `<span id="anx-atual">Anexo atual: <a href="#" id="anx-ver">${esc(it.anexoNome||'original.pdf')}</a> <button class="btn danger small" id="anx-rm" type="button">Remover</button></span>` : ''}
+        <input type="file" id="e-pdf" accept="application/pdf,.pdf"></div>
+        <div class="hint">O PDF fica cifrado, em um arquivo separado dentro da pasta <b>anexos</b>.</div></div>
+    </div>
+    <div class="msg" id="f-msg"></div>
+    <div class="row" style="margin-top:14px"><button class="btn" id="e-save">${it?'Salvar alterações':'Incluir'}</button><a class="btn sec" href="${it?'#/ver/'+encodeURIComponent(it.id):(esp==='decreto'?'#/decretos':'#/leis')}">Cancelar</a></div>
+  </div>`;
+  $('#e-esp').value = esp;
+  $('#e-data').addEventListener('change', () => { const v = $('#e-data').value; if (v) $('#e-ano').value = v.slice(0,4); });
+  $('#e-pdf').addEventListener('change', e => { novoAnexo = e.target.files[0] || null; });
+  if (it && it.anexo){
+    $('#anx-ver').onclick = e => { e.preventDefault(); abrirAnexo(it); };
+    $('#anx-rm').onclick = () => { removerAnexo = true; $('#anx-atual').innerHTML = '<i>O anexo será removido ao salvar.</i>'; };
+  }
+  if (!it){
+    const preencher = async file => {
+      const m = $('#docx-msg'); m.className='msg'; m.textContent = 'Lendo arquivo…';
+      try{
+        let texto;
+        if (/\.docx$/i.test(file.name)) texto = await lerDocx(file);
+        else if (/\.txt$/i.test(file.name)) texto = await file.text();
+        else throw new Error('use um arquivo .docx ou .txt');
+        const r = extrairCabecalho(texto);
+        $('#e-texto').value = r.texto || texto;
+        if (r.especie) $('#e-esp').value = r.especie;
+        if (r.numero) $('#e-num').value = +r.numero;
+        if (r.ano) $('#e-ano').value = r.ano;
+        if (r.data) $('#e-data').value = r.data;
+        if (r.ementa) $('#e-ementa').value = r.ementa;
+        m.className='msg ok'; m.textContent = r.numero ? `Preenchido a partir de "${file.name}". Confira os campos antes de incluir.` : `Texto carregado. Não identifiquei o cabeçalho; preencha número, data e ementa.`;
+      }catch(e){ m.className='msg err'; m.textContent = 'Não foi possível ler: ' + e.message; }
+    };
+    $('#docx').addEventListener('change', e => { if (e.target.files[0]) preencher(e.target.files[0]); });
+    const dz = $('#drop');
+    dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+    dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+    dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); if (e.dataTransfer.files[0]) preencher(e.dataTransfer.files[0]); });
+  }
+  $('#e-save').onclick = async () => {
+    const m = $('#f-msg'); m.className='msg err';
+    const espV = $('#e-esp').value, numero = parseInt($('#e-num').value, 10), data = $('#e-data').value;
+    const ano = parseInt($('#e-ano').value || (data ? data.slice(0,4) : ''), 10);
+    const ementa = $('#e-ementa').value.trim(), texto = $('#e-texto').value.trim(), obs = $('#e-obs').value.trim();
+    if (!numero || numero < 1) return m.textContent = 'Informe o número.';
+    if (!ano || ano < 1900) return m.textContent = 'Informe o ano (ou a data).';
+    if (data && +data.slice(0,4) !== ano) return m.textContent = 'O ano não confere com a data.';
+    if (!ementa && !texto) return m.textContent = 'Informe ao menos a ementa ou o texto.';
+    if (novoAnexo && novoAnexo.size > 25*1024*1024) return m.textContent = 'O PDF passa de 25 MB. O GitHub não aceita arquivos tão grandes pelo site.';
+    const novo = { kind: espV==='decreto' ? 'decreto' : 'lei', numero, ano, data, ementa, texto, obs, fonte: it ? it.fonte : 'incluida' };
+    if (novo.kind === 'lei') novo.tipo = espV;
+    novo.id = makeId(novo);
+    const dup = S.dados.itens.find(x => x.id === novo.id && (!it || x.id !== it.id));
+    if (dup) return m.textContent = `Já existe ${titulo(dup)} cadastrada. Abra e edite a existente.`;
+    if (it){ if (it.anexo && !removerAnexo){ novo.anexo = it.anexo; novo.anexoNome = it.anexoNome; } if (it._novo) novo._novo = true; }
+    else novo._novo = true;
+    if (it && it.anexo && (removerAnexo || novoAnexo)) delete S.anexosPend[it.anexo];
+    if (novoAnexo){
+      const bytes = new Uint8Array(await novoAnexo.arrayBuffer());
+      const path = `anexos/${novo.id}-${Date.now().toString(36)}.enc`;
+      S.anexosPend[path] = await encryptBytes(S.key, bytes);
+      novo.anexo = path; novo.anexoNome = novoAnexo.name;
+    }
+    if (it) S.dados.itens = S.dados.itens.map(x => x.id === it.id ? novo : x); else S.dados.itens.push(novo);
+    m.className='msg'; m.textContent='Salvando…';
+    await salvarLocal(`${it ? 'Editou' : 'Incluiu'} ${titulo(novo)}${novoAnexo ? ' (com PDF)' : ''}`);
+    location.hash = '#/ver/' + encodeURIComponent(novo.id);
+  };
+}
+
+/* ================= usuários ================= */
+async function salvarUsuariosLocal(){
+  S.usuariosAlterados = JSON.stringify(S.usuarios) !== JSON.stringify(S.usuariosServidor);
+  if (S.usuariosAlterados) await idb.set('usuarios', {base: JSON.stringify(S.usuariosServidor), atual: S.usuarios});
+  else await idb.del('usuarios');
+}
+
+function viewUsuarios(){
+  const us = S.usuarios.usuarios;
+  $('#main').innerHTML = bannerPend() + `
+  <div class="card">
+    <h3>Usuários com acesso</h3>
+    <table class="tbl"><thead><tr><th>Login</th><th>Nome</th><th>Perfil</th><th></th></tr></thead><tbody>
+    ${us.map(u=>`<tr><td><b>${esc(u.login)}</b></td><td>${esc(u.nome||'')}</td><td>${u.perfil==='admin'?'Administrador':'Consulta'}</td>
+      <td style="text-align:right"><button class="btn sec small" data-ed="${esc(u.login)}">Alterar</button> ${u.login!==S.user.login?`<button class="btn danger small" data-rm="${esc(u.login)}">Remover</button>`:''}</td></tr>`).join('')}
+    </tbody></table>
+    <p class="hint">Administrador: consulta, inclui, edita e exclui normas e gerencia usuários. Consulta: só pesquisa e lê.</p>
+  </div>
+  <div class="card">
+    <h3 id="u-tit">Novo usuário</h3>
+    <div class="form-grid">
+      <div><label for="u-login">Login</label><input type="text" id="u-login" autocapitalize="none" placeholder="ex.: maria"></div>
+      <div><label for="u-nome">Nome</label><input type="text" id="u-nome" placeholder="ex.: Maria Silva"></div>
+      <div><label for="u-perfil">Perfil</label><select id="u-perfil"><option value="consulta">Consulta</option><option value="admin">Administrador</option></select></div>
+      <div></div>
+      <div><label for="u-s1">Senha</label><input type="password" id="u-s1" autocomplete="new-password"></div>
+      <div><label for="u-s2">Repita a senha</label><input type="password" id="u-s2" autocomplete="new-password"></div>
+    </div>
+    <div class="hint">Mínimo de 8 caracteres. Para alterar um usuário existente, clique em "Alterar" e digite a nova senha.</div>
+    <div class="msg" id="u-msg"></div>
+    <div class="row" style="margin-top:12px"><button class="btn" id="u-save">Salvar usuário</button><button class="btn sec" id="u-new" type="button">Limpar</button></div>
+  </div>`;
+  const limpar = () => { $('#u-tit').textContent='Novo usuário'; ['#u-login','#u-nome','#u-s1','#u-s2'].forEach(s=>$(s).value=''); $('#u-perfil').value='consulta'; $('#u-login').disabled=false; };
+  $('#u-new').onclick = limpar;
+  document.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => {
+    const u = us.find(x=>x.login===b.dataset.ed);
+    $('#u-tit').textContent = 'Alterar ' + u.login; $('#u-login').value = u.login; $('#u-login').disabled = true;
+    $('#u-nome').value = u.nome||''; $('#u-perfil').value = u.perfil; $('#u-s1').focus();
+  });
+  document.querySelectorAll('[data-rm]').forEach(b => b.onclick = async () => {
+    if (!confirm(`Remover o usuário ${b.dataset.rm}?`)) return;
+    S.usuarios = {...S.usuarios, usuarios: us.filter(x=>x.login!==b.dataset.rm)};
+    await salvarUsuariosLocal(); viewUsuarios(); renderTabs('#/usuarios');
+  });
+  $('#u-save').onclick = async () => {
+    const m = $('#u-msg'); m.className='msg err';
+    const login = $('#u-login').value.trim().toLowerCase(), nome = $('#u-nome').value.trim(), perfil = $('#u-perfil').value;
+    const s1 = $('#u-s1').value, s2 = $('#u-s2').value;
+    if (!/^[a-z0-9._-]{3,30}$/.test(login)) return m.textContent = 'Login: de 3 a 30 caracteres, só letras sem acento, números, ponto, hífen ou sublinhado.';
+    const existe = us.find(x=>x.login===login);
+    if (existe && !$('#u-login').disabled) return m.textContent='Esse login já existe. Para mudar a senha dele, clique em "Alterar" na lista.';
+    if (s1.length < 8) return m.textContent = 'A senha precisa ter pelo menos 8 caracteres.';
+    if (s1 !== s2) return m.textContent = 'As senhas não conferem.';
+    const outrosAdmins = us.filter(x=>x.perfil==='admin' && x.login!==login).length;
+    if (perfil !== 'admin' && outrosAdmins === 0) return m.textContent = 'Precisa existir pelo menos um administrador.';
+    m.className='msg'; m.textContent='Gerando chave…';
+    const novo = await wrapFor(login, nome, perfil, s1);
+    S.usuarios = {...S.usuarios, usuarios: existe ? us.map(x=>x.login===login?novo:x) : [...us, novo]};
+    await salvarUsuariosLocal();
+    if (login === S.user.login) S.user = novo;
+    viewUsuarios(); renderTabs('#/usuarios');
+    const m2 = $('#u-msg'); m2.className='msg ok'; m2.textContent = `Usuário ${login} ${existe?'alterado':'criado'}. Para valer, publique o arquivo usuarios.json (aba Publicar alterações).`;
+  };
+}
+
+/* ================= publicar ================= */
+function baixar(nome, bytes, tipo){
+  const url = URL.createObjectURL(new Blob([bytes], {type: tipo || 'application/octet-stream'}));
+  const a = document.createElement('a'); a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 30000);
+}
+
+function viewPublicar(){
+  const hist = (S.dados.historico||[]).slice(-15).reverse();
+  const anx = Object.keys(S.anexosPend).filter(p => S.dados.itens.some(i=>i.anexo===p));
+  $('#main').innerHTML = (S.conflito ? `<div class="banner">⚠️ <span>As alterações deste navegador foram feitas sobre uma versão antiga. Outra pessoa publicou uma versão mais nova. Para não apagar o que ela fez, descarte as alterações locais e refaça as suas.</span> <button class="btn small danger" id="c-desc">Descartar alterações antigas</button></div>` : '') + `
+  <div class="card">
+    <h3>Publicar alterações</h3>
+    ${!S.pendente && !S.usuariosAlterados ? '<p>Não há alterações pendentes. Tudo o que está no sistema já está publicado.</p>' : `
+    <p>As alterações abaixo estão salvas só neste navegador. Para valerem para todos os usuários e computadores, baixe os arquivos e envie ao GitHub:</p>
+    <ol class="steps">
+      ${S.pendente?`<li>Baixe o <b>dados.enc</b>: <button class="btn small" id="p-dados">Baixar dados.enc</button></li>`:''}
+      ${anx.length?`<li>Baixe os anexos novos (${anx.length}): ${anx.map((p,i)=>`<button class="btn small sec" data-anx="${esc(p)}">${esc(p.replace('anexos/',''))}</button>`).join(' ')}</li>`:''}
+      ${S.usuariosAlterados?`<li>Baixe o <b>usuarios.json</b>: <button class="btn small" id="p-users">Baixar usuarios.json</button></li>`:''}
+      <li>No GitHub, abra o repositório, clique em <b>Add file › Upload files</b>, arraste ${[S.pendente?'o dados.enc':'', S.usuariosAlterados?'o usuarios.json':''].filter(Boolean).join(' e ')} e clique em <b>Commit changes</b>.</li>
+      ${anx.length?`<li>Os anexos vão para a pasta <b>anexos</b>: no repositório, entre na pasta <b>anexos</b>, clique em <b>Add file › Upload files</b>, arraste os arquivos e clique em <b>Commit changes</b>.</li>`:''}
+      <li>Aguarde 1 ou 2 minutos e clique em <button class="btn small sec" id="p-ok">Já publiquei</button>. O sistema confere o site e limpa as pendências.</li>
+    </ol>
+    <div class="msg" id="p-msg"></div>
+    <p style="margin-top:16px"><button class="btn danger small" id="p-desc">Descartar alterações não publicadas</button></p>`}
+  </div>
+  <div class="card"><h3>Histórico recente</h3>
+    ${hist.length ? `<table class="tbl"><thead><tr><th>Quando</th><th>Quem</th><th>O quê</th></tr></thead><tbody>${hist.map(h=>`<tr><td style="white-space:nowrap">${esc(fmtQuando(h.quando))}</td><td>${esc(h.quem)}</td><td>${esc(h.acao)}</td></tr>`).join('')}</tbody></table>` : '<p class="hint">Sem registros.</p>'}
+  </div>`;
+  const pd = $('#p-dados'); if (pd) pd.onclick = async () => {
+    const pub = {...S.dados}; delete pub.baseRev;
+    pub.itens = pub.itens.map(i => { const c = {...i}; delete c._novo; return c; });
+    const limpo = JSON.stringify(pub, (k,v)=> k==='_n' ? undefined : v);
+    baixar('dados.enc', await encryptBytes(S.key, await gz(enc.encode(limpo), 'c')));
+  };
+  document.querySelectorAll('[data-anx]').forEach(b => b.onclick = () => baixar(b.dataset.anx.replace('anexos/',''), S.anexosPend[b.dataset.anx]));
+  const pu = $('#p-users'); if (pu) pu.onclick = () => baixar('usuarios.json', enc.encode(JSON.stringify(S.usuarios, null, 1)), 'application/json');
+  const pk = $('#p-ok'); if (pk) pk.onclick = async () => {
+    const m = $('#p-msg'); m.className='msg'; m.textContent='Conferindo o site…';
+    try{
+      const pend = [];
+      if (S.pendente){
+        const d = JSON.parse(dec.decode(await gz(await decryptBytes(S.key, await fetchBin('dados.enc')), 'd')));
+        if ((d.rev||0) < S.dados.rev) pend.push('dados.enc ainda não foi atualizado no site');
+        for (const p of anx){ const r = await fetch(p + '?v=' + Date.now(), {method:'HEAD', cache:'no-store'}); if (!r.ok) pend.push(p + ' não encontrado no site'); }
+      }
+      let uServ = null;
+      if (S.usuariosAlterados){
+        uServ = await fetchJSON('usuarios.json');
+        if (JSON.stringify(uServ) !== JSON.stringify(S.usuarios)) pend.push('usuarios.json ainda não foi atualizado no site');
+      }
+      if (pend.length){ m.className='msg err'; m.innerHTML = 'Ainda falta: ' + pend.map(esc).join('; ') + '. O GitHub Pages pode levar alguns minutos; tente de novo daqui a pouco.'; return; }
+      await idb.del('pendente'); await idb.del('usuarios');
+      if (uServ) S.usuariosServidor = uServ;
+      S.usuariosAlterados = false;
+      await carregarDados(); S.conflito = null;
+      route();
+    }catch(e){ m.className='msg err'; m.textContent = 'Erro ao conferir: ' + e.message; }
+  };
+  const desc = async () => {
+    if (!confirm('Descartar todas as alterações não publicadas deste navegador? Isso não pode ser desfeito.')) return;
+    await idb.del('pendente'); await idb.del('usuarios');
+    S.usuariosAlterados = false; S.usuarios = S.usuariosServidor; S.conflito = null;
+    await carregarDados(); route();
+  };
+  const pdx = $('#p-desc'); if (pdx) pdx.onclick = desc;
+  const cd = $('#c-desc'); if (cd) cd.onclick = desc;
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+ "versao": 1,
+ "usuarios": [
+  {
+   "login": "admin",
+   "nome": "Administrador",
+   "perfil": "admin",
+   "salt": "4jyXwoZXvz2tsby+jsOcfQ==",
+   "iter": 310000,
+   "iv": "VVJ7KkUFqFedip5R",
+   "chave": "kjtKqOSFreUC8t6LBRfVnx8j2qkMwMCIbovoGCWxMnN5swcmVLXFvEw9lxV/EUv0"
+  }
+ ]
+}
