@@ -659,13 +659,20 @@ function viewForm(editId, kindHint){
 }
 
 /* ================= importar PDF com várias normas ================= */
-function loadScript(src){
-  return new Promise((res, rej) => {
-    if (document.querySelector(`script[data-src="${src}"]`)) return res();
-    const s = document.createElement('script'); s.src = src; s.dataset.src = src;
-    s.onload = res; s.onerror = () => rej(new Error('não foi possível carregar ' + src + '. Confira se a pasta lib foi enviada ao GitHub.'));
+const _scripts = {};
+function loadScript(src, global){
+  if (global && window[global]) return Promise.resolve();
+  if (_scripts[src]) return _scripts[src];
+  _scripts[src] = new Promise((res, rej) => {
+    const s = document.createElement('script'); s.src = src;
+    s.onload = () => {
+      if (global && !window[global]){ delete _scripts[src]; s.remove(); rej(new Error(src + ' foi carregado, mas não funcionou. Envie de novo a pasta lib ao GitHub.')); }
+      else res();
+    };
+    s.onerror = () => { delete _scripts[src]; s.remove(); rej(new Error('não foi possível carregar ' + src + '. Confira se a pasta lib (com as subpastas lang e tesseract-core) foi enviada ao GitHub.')); };
     document.head.appendChild(s);
   });
+  return _scripts[src];
 }
 
 const IMP = { file:null, bytes:null, paginas:[], normas:[], orfas:[], cancelar:false, rodando:false };
@@ -698,17 +705,21 @@ async function textoDaPagina(page){
 }
 
 let ocrSched = null;
-async function ocrPreparar(){
-  if (ocrSched) return ocrSched;
-  await loadScript('lib/tesseract.min.js');
-  const sched = Tesseract.createScheduler();
-  const n = Math.min(2, Math.max(1, (navigator.hardwareConcurrency||2) - 1));
-  for (let i = 0; i < n; i++){
-    const w = await Tesseract.createWorker('por', 1, { workerPath:'lib/worker.min.js', corePath:'lib/tesseract-core', langPath:'lib/lang', workerBlobURL:false });
-    await w.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '0' });
-    sched.addWorker(w);
-  }
-  ocrSched = sched; return sched;
+function ocrPreparar(){
+  if (ocrSched) return ocrSched;   // todas as páginas esperam o mesmo carregamento
+  ocrSched = (async () => {
+    await loadScript('lib/tesseract.min.js', 'Tesseract');
+    const sched = Tesseract.createScheduler();
+    const n = Math.min(2, Math.max(1, (navigator.hardwareConcurrency||2) - 1));
+    for (let i = 0; i < n; i++){
+      const w = await Tesseract.createWorker('por', 1, { workerPath:'lib/worker.min.js', corePath:'lib/tesseract-core', langPath:'lib/lang', workerBlobURL:false });
+      await w.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '0' });
+      sched.addWorker(w);
+    }
+    return sched;
+  })();
+  ocrSched.catch(() => { ocrSched = null; });   // se falhar, tenta de novo na próxima vez
+  return ocrSched;
 }
 
 async function ocrDaPagina(page){
@@ -864,7 +875,7 @@ async function processarPDF(file){
   const bar = p => { const el = $('#imp-bar'); if (el) el.style.width = (p*100).toFixed(1) + '%'; };
   try{
     st('Carregando leitor de PDF…'); bar(0);
-    await loadScript('lib/pdf.min.js');
+    await loadScript('lib/pdf.min.js', 'pdfjsLib');
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
     IMP.bytes = new Uint8Array(await file.arrayBuffer());
     const doc = await pdfjsLib.getDocument({ data: IMP.bytes.slice() }).promise;
@@ -949,7 +960,7 @@ function renderRevisao(){
   tb.querySelectorAll('[data-t]').forEach(b => b.onclick = () => $('#imp-t-' + b.dataset.t).classList.toggle('hidden'));
   tb.querySelectorAll('[data-v]').forEach(b => b.onclick = async () => {
     try{
-      await loadScript('lib/pdf-lib.min.js');
+      await loadScript('lib/pdf-lib.min.js', 'PDFLib');
       const src = await PDFLib.PDFDocument.load(IMP.bytes, { ignoreEncryption: true });
       const out = await PDFLib.PDFDocument.create();
       (await out.copyPages(src, IMP.normas[+b.dataset.v].paginas)).forEach(p => out.addPage(p));
@@ -991,7 +1002,7 @@ async function importarSelecionadas(){
   if (subst.length && !confirm(`${subst.length} ${subst.length===1?'norma marcada já está cadastrada e será substituída':'normas marcadas já estão cadastradas e serão substituídas'} pela versão deste PDF. Continuar?`)) return;
   $('#imp-go').disabled = true; m.className = 'msg'; m.textContent = 'Separando as páginas de cada norma…';
   try{
-    await loadScript('lib/pdf-lib.min.js');
+    await loadScript('lib/pdf-lib.min.js', 'PDFLib');
     const src = await PDFLib.PDFDocument.load(IMP.bytes, { ignoreEncryption: true });
     let k = 0;
     for (const n of sel){
