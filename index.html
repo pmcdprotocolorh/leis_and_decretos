@@ -110,6 +110,28 @@ table.tbl th{color:var(--muted);font-weight:600;font-size:12.5px;text-transform:
 .imp-tbl td{vertical-align:top} .imp-tbl input,.imp-tbl select{padding:6px 7px}
 .imp-tbl tr.off td{opacity:.55} .imp-tbl tr.imp-txt td{background:var(--bg)}
 .imp-tbl tr.imp-txt textarea{min-height:320px}
+.cor-ov{position:fixed;inset:0;background:rgba(20,28,40,.55);z-index:50;display:flex;align-items:stretch;justify-content:center;padding:18px}
+.cor-box{position:relative;background:#fff;border-radius:12px;width:100%;max-width:1100px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,.25)}
+.cor-head{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-bottom:1px solid var(--line)}
+.cor-tabs{display:flex;gap:4px;padding:0 12px;border-bottom:1px solid var(--line)}
+.cor-tabs a{padding:9px 12px;text-decoration:none;color:var(--muted);font-weight:600;font-size:14px;border-bottom:3px solid transparent}
+.cor-tabs a.on{color:var(--acc);border-bottom-color:var(--acc)}
+.cor-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 16px;background:var(--bg)}
+.cor-st{font-size:14px}
+.cor-leg{padding:6px 16px;font-size:12.5px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.cor-chk{font-size:13px;color:var(--muted);display:inline-flex;gap:6px;align-items:center;font-weight:400;margin:0}
+.cor-doc{flex:1;overflow:auto;padding:16px 20px;white-space:pre-wrap;font-family:Georgia,"Times New Roman",serif;font-size:15.5px;line-height:1.75;word-wrap:break-word}
+.cor-doc textarea{width:100%;height:100%;min-height:400px;border:1px solid var(--line)}
+.cor-foot{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--line)}
+.sg{cursor:pointer;border-radius:3px;padding:0 1px}
+.sg-alta{background:#ffe1d6;border-bottom:2px solid #d9480f}
+.sg-media{background:#fff3c4;border-bottom:2px dotted #b08800}
+.sg-desc{border-bottom:2px dotted #98a2b3}
+.sg-ok{background:#d9f2e1;border-radius:3px;padding:0 1px}
+.cor-leg .sg,.cor-leg .sg-ok{cursor:default;font-family:inherit}
+.cor-pop{position:absolute;z-index:60;width:330px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.18);font-size:14px}
+.cor-pop code{background:var(--bg);padding:1px 5px;border-radius:4px}
+@media(max-width:760px){.cor-ov{padding:0}.cor-box{border-radius:0}}
 @media print{
   header.top,nav.tabs,.det-actions,.banner,.matchnav,#back-link{display:none!important}
   body{background:#fff} .card{border:none;padding:0} mark{background:none}
@@ -312,7 +334,7 @@ window.addEventListener('hashchange', () => { if (S.dados) route(); });
 
 function renderTabs(cur){
   const nL = S.dados.itens.filter(i=>i.kind==='lei').length, nD = S.dados.itens.filter(i=>i.kind==='decreto').length;
-  const t = [['#/leis','Leis',nL],['#/decretos','Decretos',nD]];
+  const t = [['#/leis','Leis',nL],['#/decretos','Decretos',nD],['#/corretor','Corretor de texto',null]];
   if (isAdmin()){
     t.push(['#/incluir','Incluir norma',null]);
     t.push(['#/importar','Importar PDF',null]);
@@ -332,9 +354,9 @@ function bannerPend(){
 
 function route(){
   const h = location.hash || '#/leis';
-  const m = h.match(/^#\/(leis|decretos|ver|incluir|editar|usuarios|publicar|importar)(?:\/(.*))?$/);
+  const m = h.match(/^#\/(leis|decretos|ver|incluir|editar|usuarios|publicar|importar|corretor)(?:\/(.*))?$/);
   const pg = m ? m[1] : 'leis', arg = m && m[2] ? decodeURIComponent(m[2]) : '';
-  const tabOf = {leis:'#/leis',decretos:'#/decretos',ver:null,incluir:'#/incluir',editar:'#/incluir',usuarios:'#/usuarios',publicar:'#/publicar',importar:'#/importar'};
+  const tabOf = {leis:'#/leis',decretos:'#/decretos',ver:null,incluir:'#/incluir',editar:'#/incluir',usuarios:'#/usuarios',publicar:'#/publicar',importar:'#/importar',corretor:'#/corretor'};
   let tab = tabOf[pg];
   if (pg==='ver'){ const it = S.dados.itens.find(i=>i.id===arg); tab = it && it.kind==='decreto' ? '#/decretos' : '#/leis'; }
   renderTabs(tab);
@@ -344,6 +366,7 @@ function route(){
   if (pg==='decretos') return viewBusca('decreto');
   if (pg==='ver') return viewNorma(arg);
   if (pg==='importar') return viewImportar();
+  if (pg==='corretor') return viewCorretor();
   if (pg==='incluir') return viewForm(null, arg);
   if (pg==='editar') return viewForm(arg);
   if (pg==='usuarios') return viewUsuarios();
@@ -491,7 +514,7 @@ function viewNorma(id){
         ${it.anexo?`<button class="btn sec small" id="b-orig">📄 Ver original (PDF)</button>`:''}
         <button class="btn sec small" id="b-copy">Copiar texto</button>
         <button class="btn sec small" onclick="window.print()">Imprimir</button>
-        ${isAdmin()?`<a class="btn sec small" href="#/editar/${encodeURIComponent(it.id)}">Editar</a><button class="btn danger small" id="b-del">Excluir</button>`:''}
+        ${isAdmin()?`<button class="btn sec small" id="b-cor">✎ Corrigir texto</button><a class="btn sec small" href="#/editar/${encodeURIComponent(it.id)}">Editar</a><button class="btn danger small" id="b-del">Excluir</button>`:''}
       </div>
     </div>
     ${it.ementa?`<div class="det-ementa">${destacar(it.ementa, termos)}</div>`:''}
@@ -501,6 +524,16 @@ function viewNorma(id){
   </div>`;
   if (it.anexo) $('#b-orig').onclick = () => abrirAnexo(it);
   $('#b-copy').onclick = async () => { try{ await navigator.clipboard.writeText(titulo(it) + '\n\n' + it.texto); $('#b-copy').textContent='Copiado ✓'; }catch(_){ alert('Não foi possível copiar.'); } };
+  if (isAdmin()) $('#b-cor').onclick = () => abrirCorretor({
+    titulo: titulo(it), campos: [{ nome: 'Texto integral', texto: it.texto }, { nome: 'Ementa', texto: it.ementa }],
+    rotuloSalvar: 'Salvar na lei', original: it.anexo ? () => abrirAnexo(it) : null,
+    avisoOCR: it.fonte === 'digitalizada' && !!it.obs,
+    aoSalvar: async ([texto, ementa], { conferido }) => {
+      const alvo = S.dados.itens.find(x => x.id === it.id);
+      alvo.texto = texto; alvo.ementa = ementa; if (conferido) alvo.obs = '';
+      await salvarLocal(`Corrigiu o texto de ${titulo(alvo)}`);
+      viewNorma(alvo.id);
+    } });
   if (isAdmin()) $('#b-del').onclick = async () => {
     if (!confirm(`Excluir ${titulo(it)}? A exclusão só vale para todos depois de publicar.`)) return;
     S.dados.itens = S.dados.itens.filter(x=>x.id!==it.id);
@@ -586,7 +619,7 @@ function viewForm(editId, kindHint){
       <div><label for="e-data">Data</label><input type="date" id="e-data" value="${it?esc(it.data||''):''}"></div>
       <div><label for="e-ano">Ano</label><input type="number" id="e-ano" min="1900" max="2100" value="${it?it.ano:''}"></div>
       <div class="span4"><label for="e-ementa">Ementa</label><textarea class="short" id="e-ementa">${it?esc(it.ementa):''}</textarea></div>
-      <div class="span4"><label for="e-texto">Texto integral</label><textarea id="e-texto">${it?esc(it.texto):''}</textarea></div>
+      <div class="span4"><div class="row" style="justify-content:space-between;margin-bottom:4px"><label for="e-texto" style="margin:0">Texto integral</label><button class="btn sec small" type="button" id="e-cor">✎ Corrigir com o corretor</button></div><textarea id="e-texto">${it?esc(it.texto):''}</textarea></div>
       <div class="span4"><label for="e-obs">Observação (opcional)</label><input type="text" id="e-obs" value="${it?esc(it.obs||''):''}" placeholder="Ex.: revogada pela Lei nº ..."></div>
       <div class="span4"><label>Original em PDF (opcional)</label>
         <div class="row">${it && it.anexo ? `<span id="anx-atual">Anexo atual: <a href="#" id="anx-ver">${esc(it.anexoNome||'original.pdf')}</a> <button class="btn danger small" id="anx-rm" type="button">Remover</button></span>` : ''}
@@ -597,6 +630,11 @@ function viewForm(editId, kindHint){
     <div class="row" style="margin-top:14px"><button class="btn" id="e-save">${it?'Salvar alterações':'Incluir'}</button><a class="btn sec" href="${it?'#/ver/'+encodeURIComponent(it.id):(esp==='decreto'?'#/decretos':'#/leis')}">Cancelar</a></div>
   </div>`;
   $('#e-esp').value = esp;
+  $('#e-cor').onclick = () => abrirCorretor({
+    titulo: it ? titulo(it) : 'nova norma', campos: [{ nome: 'Texto integral', texto: $('#e-texto').value }, { nome: 'Ementa', texto: $('#e-ementa').value }],
+    original: it && it.anexo ? () => abrirAnexo(it) : null,
+    avisoOCR: !!(it && it.fonte === 'digitalizada' && $('#e-obs').value),
+    aoSalvar: async ([t, e], { conferido }) => { $('#e-texto').value = t; $('#e-ementa').value = e; if (conferido) $('#e-obs').value = ''; } });
   $('#e-data').addEventListener('change', () => { const v = $('#e-data').value; if (v) $('#e-ano').value = v.slice(0,4); });
   $('#e-pdf').addEventListener('change', e => { novoAnexo = e.target.files[0] || null; });
   if (it && it.anexo){
@@ -941,7 +979,7 @@ function renderRevisao(){
       <td style="min-width:260px"><textarea class="short" data-k="ementa" rows="2" style="min-height:54px">${esc(n.ementa)}</textarea></td>
       <td style="white-space:nowrap">${fmtPags(n.paginas)}</td>
       <td style="white-space:nowrap"><button class="btn sec small" data-t="${i}" type="button">Texto</button> <button class="btn sec small" data-v="${i}" type="button" title="Abrir as páginas originais desta norma">PDF</button></td></tr>
-      <tr class="imp-txt hidden" id="imp-t-${i}"><td colspan="9"><textarea data-i="${i}" data-k="texto">${esc(n.texto)}</textarea></td></tr>`).join('')}
+      <tr class="imp-txt hidden" id="imp-t-${i}"><td colspan="9"><div class="row" style="margin-bottom:6px"><button class="btn sec small" type="button" data-c="${i}">✎ Corrigir com o corretor</button><span class="hint">Corrige o texto e a ementa desta norma antes de importar.</span></div><textarea data-i="${i}" data-k="texto">${esc(n.texto)}</textarea></td></tr>`).join('')}
     </tbody></table></div>
     <div class="msg" id="imp-msg2"></div>
     <div class="row" style="margin-top:14px"><button class="btn" id="imp-go">Importar ${sel} ${sel===1?'norma selecionada':'normas selecionadas'}</button><button class="btn sec" id="imp-novo" type="button">Escolher outro PDF</button></div>
@@ -958,16 +996,15 @@ function renderRevisao(){
     if (k === 'sel' || k === 'especie' || k === 'numero' || k === 'ano' || k === 'data') atualizarRevisao();
   };
   tb.querySelectorAll('[data-t]').forEach(b => b.onclick = () => $('#imp-t-' + b.dataset.t).classList.toggle('hidden'));
-  tb.querySelectorAll('[data-v]').forEach(b => b.onclick = async () => {
-    try{
-      await loadScript('lib/pdf-lib.min.js', 'PDFLib');
-      const src = await PDFLib.PDFDocument.load(IMP.bytes, { ignoreEncryption: true });
-      const out = await PDFLib.PDFDocument.create();
-      (await out.copyPages(src, IMP.normas[+b.dataset.v].paginas)).forEach(p => out.addPage(p));
-      const url = URL.createObjectURL(new Blob([await out.save()], {type:'application/pdf'}));
-      window.open(url, '_blank'); setTimeout(() => URL.revokeObjectURL(url), 120000);
-    }catch(e){ alert('Não foi possível abrir: ' + e.message); }
+  tb.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
+    const i = +b.dataset.c, n = IMP.normas[i];
+    abrirCorretor({ titulo: `${ESPECIE[n.especie]} nº ${n.numero}/${n.ano}`, campos: [{ nome: 'Texto integral', texto: n.texto }, { nome: 'Ementa', texto: n.ementa }],
+      original: () => abrirPagsImp(i),
+      aoSalvar: async ([t, e]) => { n.texto = t; n.ementa = e;
+        const tt = document.querySelector(`#imp-t-${i} textarea`); if (tt) tt.value = t;
+        const te = document.querySelector(`tr[data-i="${i}"] [data-k=ementa]`); if (te) te.value = e; } });
   });
+  tb.querySelectorAll('[data-v]').forEach(b => b.onclick = () => abrirPagsImp(+b.dataset.v).catch(e => alert('Não foi possível abrir: ' + e.message)));
   $('#imp-all').onchange = e => { IMP.normas.forEach(n => n.sel = e.target.checked); renderRevisao(); };
   $('#imp-novo').onclick = () => { IMP.normas = []; IMP.file = null; viewImportar(); };
   $('#imp-go').onclick = importarSelecionadas;
@@ -1035,6 +1072,488 @@ async function importarSelecionadas(){
   }catch(e){
     console.error(e); m.className = 'msg err'; m.textContent = 'Erro ao importar: ' + e.message; $('#imp-go').disabled = false;
   }
+}
+
+async function abrirPagsImp(i){
+  await loadScript('lib/pdf-lib.min.js', 'PDFLib');
+  const src = await PDFLib.PDFDocument.load(IMP.bytes, { ignoreEncryption: true });
+  const out = await PDFLib.PDFDocument.create();
+  (await out.copyPages(src, IMP.normas[i].paginas)).forEach(p => out.addPage(p));
+  const url = URL.createObjectURL(new Blob([await out.save()], {type:'application/pdf'}));
+  window.open(url, '_blank'); setTimeout(() => URL.revokeObjectURL(url), 120000);
+}
+
+/* ================= corretor de texto ================= */
+/* verificador ortográfico leve (formato Hunspell: dicionário + regras de sufixo/prefixo) */
+function hunCriar(affTxt, dicTxt){
+  const sfx = new Map(), pfx = [], cont = [];
+  let proibida = null;
+  const reCond = c => c === '.' ? null : new RegExp(c);
+  for (const linha of affTxt.split('\n')){
+    const p = linha.trim().split(/\s+/);
+    if (p[0] === 'FORBIDDENWORD') proibida = p[1];
+    if ((p[0] !== 'SFX' && p[0] !== 'PFX') || p.length < 5) continue;
+    const [tipo, flag, strip0, add0, cond] = p;
+    let [add, cf] = add0.split('/');
+    const r = { flag, strip: strip0 === '0' ? '' : strip0, add: add === '0' ? '' : add, cont: cf || '' };
+    if (tipo === 'SFX'){
+      r.cond = cond === '.' ? null : new RegExp('(?:' + cond + ')$', 'u');
+      if (!sfx.has(r.add)) sfx.set(r.add, []); sfx.get(r.add).push(r);
+      if (r.cont) cont.push(r);
+    } else {
+      r.cond = cond === '.' ? null : new RegExp('^(?:' + cond + ')', 'u');
+      pfx.push(r);
+    }
+  }
+  const dic = new Map();
+  const ls = dicTxt.split('\n');
+  for (let i = 1; i < ls.length; i++){
+    const l = ls[i]; if (!l) continue;
+    const j = l.indexOf('/');
+    const w = (j < 0 ? l : l.slice(0, j)).trim(), f = j < 0 ? '' : l.slice(j + 1).trim().split(/\s/)[0];
+    if (w) dic.set(w, (dic.get(w) || '') + f);
+  }
+  const temFlag = (base, flag) => { const f = dic.get(base); return f !== undefined && f.includes(flag) && !(proibida && f.includes(proibida)); };
+  // sufixo de 1 nível; exige: base tem a flag (e, se pedido, também a flag do prefixo)
+  function viaSufixo(w, precisa){
+    for (let k = 0; k <= w.length; k++){
+      const rs = sfx.get(w.slice(k)); if (!rs) continue;
+      const raiz = w.slice(0, k);
+      for (const r of rs){
+        const base = raiz + r.strip; if (!base) continue;
+        if (r.cond && !r.cond.test(base)) continue;
+        if (temFlag(base, r.flag) && (!precisa || temFlag(base, precisa))) return true;
+      }
+    }
+    // sufixo de 2 níveis (r1 permite r2 em seguida)
+    for (const r1 of cont){
+      for (let k = 0; k <= w.length; k++){
+        const rs = sfx.get(w.slice(k)); if (!rs) continue;
+        for (const r2 of rs){
+          if (!r1.cont.includes(r2.flag)) continue;
+          const meio = w.slice(0, k) + r2.strip;
+          if (!meio.endsWith(r1.add)) continue;
+          const base = meio.slice(0, meio.length - r1.add.length) + r1.strip;
+          if (base && (!r1.cond || r1.cond.test(base)) && temFlag(base, r1.flag)) return true;
+        }
+      }
+    }
+    return false;
+  }
+  function ok(w){
+    const f = dic.get(w);
+    if (f !== undefined) return !(proibida && f.includes(proibida));
+    if (viaSufixo(w)) return true;
+    for (const r of pfx){
+      if (!w.startsWith(r.add)) continue;
+      const resto = r.strip + w.slice(r.add.length);
+      if (!resto || (r.cond && !r.cond.test(resto))) continue;
+      if (temFlag(resto, r.flag)) return true;
+      if (viaSufixo(resto, r.flag)) return true;
+    }
+    return false;
+  }
+  return {
+    tamanho: dic.size,
+    verifica(w){
+      if (ok(w)) return true;
+      const lo = w.toLowerCase(); if (lo !== w && ok(lo)) return true;
+      const ti = lo.charAt(0).toUpperCase() + lo.slice(1); if (ti !== w && ok(ti)) return true;
+      return false;
+    }
+  };
+}
+
+const COR = { vocab:null, nmap:null, extra:new Set(), loading:null, cache:new Map() };
+const RE_PAL = /\p{L}[\p{L}\p{N}]*(?:-\p{L}[\p{L}\p{N}]*)*/gu;
+
+function corExtraLer(){ try{ return new Set(JSON.parse(localStorage.getItem('dic-extra')||'[]')); }catch(_){ return new Set(); } }
+function corExtraAdd(w){ COR.extra.add(w); COR.cache.clear(); try{ localStorage.setItem('dic-extra', JSON.stringify([...COR.extra])); }catch(_){} }
+
+function corCarregar(){
+  if (COR.vocab) return Promise.resolve();
+  if (COR.loading) return COR.loading;
+  COR.loading = (async () => {
+    const baixarTxt = async nome => {
+      const r = await fetch('lib/' + nome);
+      if (!r.ok) throw new Error('não foi possível carregar lib/' + nome + '. Envie esse arquivo para a pasta lib no GitHub.');
+      let b = new Uint8Array(await r.arrayBuffer());
+      if (b[0] === 0x1f && b[1] === 0x8b) b = await gz(b, 'd');
+      return b;
+    };
+    const [b, aff, dic] = await Promise.all([baixarTxt('vocab-pt.txt.gz'), baixarTxt('pt.aff.gz'), baixarTxt('pt.dic.gz')]);
+    COR.hun = hunCriar(dec.decode(aff), dec.decode(dic));
+    const vocab = new Map(), nmap = new Map();
+    for (const line of dec.decode(b).split('\n')){
+      const t = line.indexOf('\t'); if (t < 1) continue;
+      const w = line.slice(0, t), f = +line.slice(t + 1);
+      vocab.set(w, f);
+      const n = norm(w), cur = nmap.get(n);
+      if (!cur || vocab.get(cur) < f) nmap.set(n, w);
+    }
+    // vocabulário das normas cadastradas que não vieram de escaneamento
+    if (S.dados) for (const it of S.dados.itens){
+      if (it.fonte === 'digitalizada') continue;
+      for (const w of (it.texto + ' ' + it.ementa).match(RE_PAL) || []){
+        const l = w.toLowerCase(); if (l.length < 2 || /\d/.test(l)) continue;
+        if (!vocab.has(l) && !COR.hun.verifica(w)) continue;   // não aprende erros de digitação
+        vocab.set(l, (vocab.get(l) || 0) + 20);
+        const n = norm(l), cur = nmap.get(n);
+        if (!cur || vocab.get(cur) < vocab.get(l)) nmap.set(n, l);
+      }
+    }
+    COR.vocab = vocab; COR.nmap = nmap; COR.extra = corExtraLer();
+  })();
+  COR.loading.catch(() => { COR.loading = null; });
+  return COR.loading;
+}
+
+const PLURAIS = [['oes','ao','ões','ão'],['aes','ao','ães','ão'],['ais','al','ais','al'],['eis','el','eis','el'],['ois','ol','óis','ol'],['is','il','is','il'],
+  ['ns','m','ns','m'],['res','r','res','r'],['zes','z','zes','z'],['ses','s','ses','s'],['es','','es',''],['s','','s',''],['as','o','as','o'],['a','o','a','o']];
+function achar(n){
+  const w = COR.nmap.get(n); if (w) return [w, COR.vocab.get(w)];
+  for (const [ns, nr, as, ar] of PLURAIS){
+    if (n.length > ns.length + 2 && n.endsWith(ns)){
+      const base = COR.nmap.get(n.slice(0, -ns.length) + nr);
+      if (base && base.endsWith(ar)){
+        const forma = base.slice(0, base.length - ar.length) + as;
+        if (!COR.hun || COR.hun.verifica(forma)) return [forma, Math.max(3, (COR.vocab.get(base)||1) / 4)];
+      }
+    }
+  }
+  return null;
+}
+function conhecida(lw, orig){
+  if (COR.vocab.has(lw) || COR.extra.has(lw)) return true;
+  if (COR.hun && COR.hun.verifica(orig || lw)) return true;
+  if (lw.includes('-')) return lw.split('-').every(p => p.length < 2 || conhecida(p));
+  return false;
+}
+
+const ALF = 'abcdefghijklmnopqrstuvwxyzç';
+function edits1(w){
+  const out = new Set();
+  for (let i = 0; i <= w.length; i++){
+    const a = w.slice(0, i), b = w.slice(i);
+    if (b) out.add(a + b.slice(1));
+    if (b.length > 1) out.add(a + b[1] + b[0] + b.slice(2));
+    for (const c of ALF){ if (b) out.add(a + c + b.slice(1)); out.add(a + c + b); }
+  }
+  return out;
+}
+function edits1acento(w){
+  const A = 'abcdefghijlmnopqrstuvxzçáàâãéêíóôõú', out = new Set();
+  for (let i = 0; i <= w.length; i++){
+    const a = w.slice(0, i), b = w.slice(i);
+    if (b) out.add(a + b.slice(1));
+    if (b.length > 1) out.add(a + b[1] + b[0] + b.slice(2));
+    for (const c of A){ if (b) out.add(a + c + b.slice(1)); out.add(a + c + b); }
+  }
+  out.delete(w); return out;
+}
+const OCR_TROCAS = [['rn','m'],['m','rn'],['ni','m'],['in','m'],['cl','d'],['li','h'],['ii','u'],['ii','ü'],['vv','w'],['1','l'],['1','i'],['l','i'],['i','l'],['l','t'],['t','l'],
+  ['0','o'],['5','s'],['8','s'],['6','e'],['c','e'],['e','c'],['e','o'],['o','e'],['n','u'],['u','n'],['h','b'],['b','h'],['f','t'],['t','f'],['q','g'],['g','q'],['a','o'],['o','a'],['r','t'],['j','i']];
+
+function pareceLixo(lw){
+  // sequências longas sem sentido (carimbo, mancha): poucas letras diferentes ou sem vogais suficientes
+  if (lw.length < 12) return false;
+  const dif = new Set(lw).size, vog = (lw.match(/[aeiouáàâãéêíóôõú]/g) || []).length;
+  return lw.length > 22 || dif <= lw.length / 3.2 || vog < lw.length * 0.25 || vog > lw.length * 0.7;
+}
+function candidatos(lw){
+  if (COR.cache.has(lw)) return COR.cache.get(lw);
+  if (pareceLixo(lw)){ COR.cache.set(lw, []); return []; }
+  const n = norm(lw), res = new Map();
+  const add = (w, f, c) => { if (!w || w === lw) return; const cur = res.get(w); if (!cur || c < cur.c) res.set(w, { f, c }); };
+  const a = achar(n); if (a) add(a[0], a[1], 0.2);
+  const vars = new Set();
+  for (const [de, para] of OCR_TROCAS){ let i = n.indexOf(de); while (i !== -1){ vars.add(n.slice(0, i) + para + n.slice(i + de.length)); i = n.indexOf(de, i + 1); } }
+  for (const v of vars){ const r = achar(v); if (r) add(r[0], r[1], 0.6); }
+  if (n.length >= 3) for (const v of edits1(n)){ const r = achar(v); if (r) add(r[0], r[1], 1); }
+  if (n.length >= 5 && n.length <= 14 && ![...res.values()].some(x => x.c <= 1)){
+    for (const v of vars) for (const v2 of edits1(v)){ const r = achar(v2); if (r) add(r[0], r[1], 1.6); }
+  }
+  if (n.length >= 6) for (let i = 2; i <= n.length - 2; i++){
+    const L = achar(n.slice(0, i)), R = achar(n.slice(i));
+    if (L && R && L[1] >= 40 && R[1] >= 40 && (i >= 3 || L[1] > 1000) && (n.length - i >= 3 || R[1] > 1000)) add(L[0] + ' ' + R[0], Math.min(L[1], R[1]), 1.2);
+  }
+  for (const [w, x] of [...res]){ if (x.f < 50 && !w.split(' ').every(p => COR.hun.verifica(p))) res.delete(w); }
+  if (lw.length >= 4 && lw.length <= 16 && ![...res.values()].some(x => x.c <= 1)){
+    for (const v of edits1acento(lw)) if (COR.hun.verifica(v)) add(v, COR.vocab.get(v) || 5, 1.1);
+  }
+  const out = [...res.entries()].map(([w, x]) => ({ w, c: x.c, f: x.f, s: x.c * 3 - Math.log(x.f + 1) })).sort((p, q) => p.s - q.s).slice(0, 4);
+  COR.cache.set(lw, out); return out;
+}
+
+function aplicaCaixa(orig, cand){
+  const up = orig === orig.toUpperCase() && orig !== orig.toLowerCase();
+  if (up && orig.length > 1) return cand.toUpperCase();
+  if (orig[0] !== orig[0].toLowerCase()) return cand[0].toUpperCase() + cand.slice(1);
+  return cand;
+}
+
+/* --- análise: devolve sugestões {a, b, orig, opts[], conf:'alta'|'media'|'desc', motivo} --- */
+function analisar(texto){
+  const sugs = [];
+  const add = s => sugs.push(s);
+  const regra = (re, fn) => { re.lastIndex = 0; let m; while ((m = re.exec(texto))){ const r = fn(m); if (r) add(r); if (m[0] === '') re.lastIndex++; } };
+  // § lido como 8 ou $
+  regra(/(^|\n)([^\S\n]*)((?:[o0O]\s*)?(?:8|\$)\s?)(\d{1,2}\s?[º°o])/g, m => {
+    const a = m.index + m[1].length + m[2].length; return { a, b: a + m[3].length, orig: m[3], opts: ['§ '], conf: 'alta', motivo: 'Símbolo de parágrafo (§) lido como "' + m[3].trim() + '".' }; });
+  regra(/\$\$/g, m => ({ a: m.index, b: m.index + 2, orig: '$$', opts: ['§§'], conf: 'alta', motivo: 'Símbolo de parágrafos (§§).' }));
+  regra(/\bArt\.?\s?([1-9])\s?[o°](?=[\s.,;:-])/g, m => ({ a: m.index, b: m.index + m[0].length, orig: m[0], opts: [`Art. ${m[1]}º`], conf: 'alta', motivo: 'Numeração de artigo.' }));
+  // sílaba separada por hífen de fim de linha
+  regra(/(\p{L}{2,})- (\p{L}{2,})/gu, m => {
+    const j = (m[1] + m[2]).toLowerCase();
+    if (conhecida(j) && !(conhecida(m[1].toLowerCase()) && conhecida(m[2].toLowerCase()))) return { a: m.index, b: m.index + m[0].length, orig: m[0], opts: [m[1] + m[2]], conf: 'alta', motivo: 'Palavra separada pela quebra de linha.' };
+  });
+  // sujeira de carimbo/assinatura antes do artigo ou da fórmula de promulgação
+  regra(/(^|\n)([^\S\n]*)((?:\(?\p{L}{1,3}\)?|[|\\\/])[^\S\n]+)(?=Art\.?\s*\d|O\s+PREFEIT|§)/gu, m => {
+    const a = m.index + m[1].length + m[2].length; return { a, b: a + m[3].length, orig: m[3], opts: [''], conf: 'media', motivo: 'Provável sujeira do escaneamento (carimbo, rubrica) no início da linha.' }; });
+  // linhas de sujeira
+  let pos = 0;
+  for (const linha of texto.split('\n')){
+    const t = linha.trim();
+    if (t){
+      const al = [...t].filter(c => /[\p{L}\p{N}]/u.test(c)).length;
+      const curta = t.length <= 3 && !/^[\p{Lu}\d]+[.)]?$/u.test(t) && !/^([a-z]\)|§|Art\.?)$/i.test(t);
+      if ((curta || (al < t.length * 0.5 && t.length < 60)) && !/^[-–—_=.]{3,}$/.test(t))
+        add({ a: pos, b: Math.min(texto.length, pos + linha.length + 1), orig: linha + '\n', opts: [''], conf: 'media', motivo: 'Linha que parece sujeira do escaneamento (carimbo, assinatura, mancha).' });
+    }
+    pos += linha.length + 1;
+  }
+  // palavra partida em duas partes válidas: "orça mentária"
+  regra(/(\p{L}{2,})(?= (\p{L}{2,}))/gu, m => {
+    const X = m[1], Y = m[2], j = (X + Y).toLowerCase(), fj = COR.vocab.get(j) || 0;
+    if (fj < 100) return;
+    const fx = COR.vocab.get(X.toLowerCase()) || 0, fy = COR.vocab.get(Y.toLowerCase()) || 0;
+    if (fx >= 30 && fy >= 30) return;
+    return { a: m.index, b: m.index + X.length + 1 + Y.length, orig: X + ' ' + Y, opts: [aplicaCaixa(X, j)], conf: (fx === 0 || fy === 0) ? 'alta' : 'media', motivo: 'Palavra partida em duas.' };
+  });
+  regra(/(?<=\p{L}) c(?= \p{L})/gu, m => ({ a: m.index + 1, b: m.index + 2, orig: 'c', opts: ['e'], conf: 'alta', motivo: '"e" lido como "c".' }));
+  regra(/ +(?=[,.;:)])/g, m => ({ a: m.index, b: m.index + m[0].length, orig: m[0], opts: [''], conf: 'alta', motivo: 'Espaço antes da pontuação.' }));
+  regra(/\bR \$/g, m => ({ a: m.index, b: m.index + 3, orig: 'R $', opts: ['R$'], conf: 'alta', motivo: 'Símbolo do real.' }));
+
+  // palavras
+  RE_PAL.lastIndex = 0; let m;
+  while ((m = RE_PAL.exec(texto))){
+    const w = m[0], lw = w.toLowerCase();
+    if (w.length < 2) continue;
+    if (conhecida(lw, w)){
+      if (lw.length >= 4 && !COR.extra.has(lw)){
+        const alt = COR.nmap.get(norm(lw));
+        if (alt && alt !== lw && norm(alt) === norm(lw) && (COR.vocab.get(alt) || 0) >= 100 && (COR.vocab.get(alt) || 0) >= 30 * (COR.vocab.get(lw) || 1))
+          add({ a: m.index, b: m.index + w.length, orig: w, opts: [aplicaCaixa(w, alt)], conf: 'media', motivo: 'A palavra existe, mas nas leis ela quase sempre aparece com acento.', palavra: lw });
+      }
+      continue;
+    }
+    const a = m.index, b = a + w.length;
+    // palavra partida em duas: "orça mentária"
+    const prox = texto.slice(b).match(/^ (\p{L}{2,})/u);
+    if (prox && !conhecida(prox[1].toLowerCase(), prox[1])){
+      const j = lw + prox[1].toLowerCase();
+      const an = COR.nmap.get(norm(j));
+      if (conhecida(j) || (an && COR.vocab.get(an) >= 50)){
+        const jw = conhecida(j) ? j : an;
+        add({ a, b: b + 1 + prox[1].length, orig: w + ' ' + prox[1], opts: [aplicaCaixa(w, jw)], conf: 'alta', motivo: 'Palavra partida em duas.' });
+        RE_PAL.lastIndex = b + 1 + prox[1].length; continue;
+      }
+    }
+    const tudoMaiusc = w === w.toUpperCase() && /\p{Lu}/u.test(w);
+    const ini = texto.slice(Math.max(0, a - 3), a);
+    const inicioFrase = a === 0 || /[.!?:;\n]\s*$/.test(ini) || /\n\s*$/.test(texto.slice(Math.max(0, a - 6), a));
+    const nomeProprio = !tudoMaiusc && /^\p{Lu}/u.test(w) && !inicioFrase;
+    const sigla = tudoMaiusc && w.length <= 6 && !/\d/.test(w);
+    let cs = candidatos(lw);
+    if (nomeProprio || sigla) cs = cs.filter(c => c.c <= 0.2);
+    if (!cs.length){
+      if (pareceLixo(lw)) add({ a, b, orig: w, opts: [''], conf: 'media', motivo: 'Sequência de letras sem sentido: provável sujeira do escaneamento (carimbo, mancha).', palavra: lw });
+      else if (!nomeProprio && !sigla && w.length >= 3) add({ a, b, orig: w, opts: [], conf: 'desc', motivo: 'Palavra não reconhecida. Pode ser um nome, uma sigla ou um erro de leitura sem sugestão.', palavra: lw });
+      continue;
+    }
+    if (w.length <= 3){
+      cs = cs.filter(c => c.c <= 0.6);
+      add({ a, b, orig: w, opts: [...cs.map(c => aplicaCaixa(w, c.w)), ''], conf: 'media', motivo: 'Fragmento estranho: pode ser erro de leitura ou sujeira do escaneamento.', palavra: lw });
+      continue;
+    }
+    const best = cs[0], second = cs[1];
+    const camelo = /\p{Ll}\p{Lu}/u.test(w);   // ex.: eMulti, iPhone: nome próprio ou palavras grudadas
+    const alta = !camelo && !best.w.includes(' ') && ( best.c <= 0.2 || (best.c <= 0.6 && best.f >= 20 && (!second || second.s - best.s >= 1.5))
+      || (best.c <= 1 && lw.length >= 6 && best.f >= 50 && (!second || second.s - best.s >= 2.5)));
+    add({ a, b, orig: w, opts: cs.map(c => aplicaCaixa(w, c.w)), conf: alta ? 'alta' : 'media',
+      motivo: best.c <= 0.2 ? 'Acento lido errado.' : (best.w.includes(' ') ? 'Palavras grudadas ou letra lida errado.' : 'Provável erro de leitura.'), palavra: lw });
+  }
+  // ordena e remove sobreposições (regras vêm antes das palavras na lista e têm preferência)
+  const ord = sugs.map((s, i) => ({ ...s, pri: i })).sort((x, y) => x.a - y.a || x.pri - y.pri);
+  const out = []; let fim = -1;
+  for (const s of ord){ if (s.a >= fim){ out.push(s); fim = s.b; } }
+  return out;
+}
+
+/* --- janela do corretor --- */
+function abrirCorretor({ titulo: tit, campos, aoSalvar, rotuloSalvar, original, avisoOCR }){
+  const st = campos.map(c => ({ nome: c.nome, texto: c.texto || '', sugs: [], feitos: [], hist: [], livre: false }));
+  let cur = 0, aberto = true;
+  const ov = document.createElement('div'); ov.className = 'cor-ov';
+  ov.innerHTML = `<div class="cor-box" role="dialog" aria-label="Corretor de texto">
+    <div class="cor-head"><div><b>Corretor de texto</b>${tit ? ` · <span>${esc(tit)}</span>` : ''}</div><button class="btn sec small" data-a="fechar" title="Fechar sem salvar">✕</button></div>
+    ${st.length > 1 ? `<div class="cor-tabs">${st.map((c,i) => `<a href="#" data-campo="${i}">${esc(c.nome)}</a>`).join('')}</div>` : ''}
+    <div class="cor-bar">
+      <span class="cor-st" id="cor-st">Carregando o dicionário…</span>
+      <span class="row">
+        <button class="btn small" data-a="altas">Aceitar as prováveis</button>
+        <button class="btn sec small" data-a="todas">Aceitar todas</button>
+        <button class="btn sec small" data-a="desfazer">↶ Desfazer</button>
+        <button class="btn sec small" data-a="livre">Editar livremente</button>
+        ${original ? '<button class="btn sec small" data-a="orig">📄 Ver original</button>' : ''}
+      </span>
+    </div>
+    <div class="cor-leg"><span class="sg sg-alta">provável</span> <span class="sg sg-media">possível</span> <span class="sg sg-desc">não reconhecida</span> <span class="sg-ok">corrigido</span> <span class="hint">Clique numa marcação para ver as opções.</span>
+      <label class="cor-chk"><input type="checkbox" id="cor-vdesc" checked> mostrar não reconhecidas</label></div>
+    <div class="cor-doc" id="cor-doc"></div>
+    <div class="cor-foot">
+      ${avisoOCR ? '<label class="cor-chk"><input type="checkbox" id="cor-conf"> Texto conferido com o original: remover o aviso de "reconhecimento de imagem"</label>' : '<span></span>'}
+      <span class="row"><button class="btn sec" data-a="fechar">Cancelar</button><button class="btn" data-a="salvar">${esc(rotuloSalvar || 'Usar texto corrigido')}</button></span>
+    </div>
+    <div class="cor-pop hidden" id="cor-pop"></div>
+  </div>`;
+  document.body.appendChild(ov); document.body.style.overflow = 'hidden';
+  const q = s => ov.querySelector(s);
+  const pop = q('#cor-pop'), doc = q('#cor-doc');
+  const fechar = () => { aberto = false; ov.remove(); document.body.style.overflow = ''; document.removeEventListener('keydown', esc_); };
+  const esc_ = e => { if (e.key === 'Escape'){ if (!pop.classList.contains('hidden')) pop.classList.add('hidden'); else if (confirm('Fechar o corretor sem salvar?')) fechar(); } };
+  document.addEventListener('keydown', esc_);
+
+  const C = () => st[cur];
+  const snapshot = () => { const c = C(); c.hist.push(JSON.stringify({ t: c.texto, s: c.sugs, f: c.feitos })); if (c.hist.length > 60) c.hist.shift(); };
+  const aplicar = (k, rep) => {
+    const c = C(), s = c.sugs[k]; if (!s) return;
+    const d = rep.length - (s.b - s.a);
+    c.texto = c.texto.slice(0, s.a) + rep + c.texto.slice(s.b);
+    c.sugs.splice(k, 1);
+    for (const o of c.sugs) if (o.a >= s.b){ o.a += d; o.b += d; }
+    c.feitos = c.feitos.filter(f => f.b <= s.a || f.a >= s.b).map(f => f.a >= s.b ? { a: f.a + d, b: f.b + d } : f);
+    if (rep) c.feitos.push({ a: s.a, b: s.a + rep.length });
+    if (s.palavra && rep && !rep.includes(' ')){
+      // a mesma palavra errada em outros pontos recebe a mesma correção como provável
+      for (const o of c.sugs) if (o.palavra === s.palavra && o.conf !== 'alta'){ o.opts = [aplicaCaixa(o.orig, rep.toLowerCase()), ...o.opts.filter(x => x.toLowerCase() !== rep.toLowerCase())]; o.conf = 'alta'; o.motivo = 'Mesma correção feita em outro ponto do texto.'; }
+    }
+  };
+  const status = () => {
+    const c = C(); const n = t => c.sugs.filter(s => s.conf === t).length;
+    q('#cor-st').innerHTML = c.livre ? 'Edição livre: altere o texto à vontade e clique em <b>Voltar à revisão</b>.'
+      : `<b>${n('alta')}</b> prováveis · <b>${n('media')}</b> possíveis · <b>${n('desc')}</b> não reconhecidas${c.feitos.length ? ` · <b>${c.feitos.length}</b> corrigidas` : ''}`;
+    q('[data-a=altas]').textContent = `Aceitar as prováveis (${n('alta')})`;
+    q('[data-a=altas]').disabled = c.livre || !n('alta');
+    q('[data-a=todas]').disabled = c.livre || !(n('alta') + n('media'));
+    q('[data-a=desfazer]').disabled = c.livre || !c.hist.length;
+    q('[data-a=livre]').textContent = c.livre ? 'Voltar à revisão' : 'Editar livremente';
+    ov.querySelectorAll('[data-campo]').forEach(a => a.classList.toggle('on', +a.dataset.campo === cur));
+  };
+  const render = () => {
+    pop.classList.add('hidden');
+    const c = C();
+    if (c.livre){ doc.innerHTML = '<textarea id="cor-ta"></textarea>'; q('#cor-ta').value = c.texto; status(); return; }
+    const mostrarDesc = q('#cor-vdesc').checked;
+    const marcas = [...c.sugs.map((s, k) => ({ a: s.a, b: s.b, k, s })).filter(x => mostrarDesc || x.s.conf !== 'desc'), ...c.feitos.map(f => ({ a: f.a, b: f.b, ok: true }))].sort((x, y) => x.a - y.a);
+    let h = '', p = 0;
+    for (const mk of marcas){
+      if (mk.a < p) continue;
+      h += esc(c.texto.slice(p, mk.a));
+      const seg = c.texto.slice(mk.a, mk.b);
+      if (mk.ok) h += `<span class="sg-ok">${esc(seg)}</span>`;
+      else {
+        const vis = seg.trim() ? esc(seg) : (seg.includes('\n') ? '↵\n' : '·'.repeat(Math.max(1, seg.length)));
+        const dica = mk.s.opts.length ? (mk.s.opts[0] === '' ? 'remover' : mk.s.opts[0]) : '';
+        h += `<span class="sg sg-${mk.s.conf}" data-k="${mk.k}" title="${esc(dica ? '→ ' + dica : mk.s.motivo)}">${vis}</span>`;
+      }
+      p = mk.b;
+    }
+    h += esc(c.texto.slice(p));
+    doc.innerHTML = h || '<span class="hint">(texto vazio)</span>';
+    status();
+  };
+  const analisarCampo = () => { const c = C(); c.sugs = analisar(c.texto); c.feitos = []; };
+
+  doc.addEventListener('click', e => {
+    const sp = e.target.closest('.sg[data-k]'); if (!sp) { pop.classList.add('hidden'); return; }
+    const k = +sp.dataset.k, s = C().sugs[k]; if (!s) return;
+    const ops = s.opts.map((o, i) => `<button class="btn ${i === 0 ? '' : 'sec '}small" data-op="${i}">${o === '' ? (s.orig.includes('\n') ? 'Remover linha' : 'Remover') : esc(o)}</button>`).join(' ');
+    pop.innerHTML = `<div class="hint" style="margin-bottom:6px">${esc(s.motivo)}</div>
+      <div style="margin-bottom:8px">Lido: <code>${esc(s.orig.replace(/\n/g,'↵'))}</code></div>
+      ${ops ? `<div class="row" style="margin-bottom:8px">${ops}</div>` : ''}
+      <div class="row"><input type="text" id="cor-outra" placeholder="Outra correção" value="${esc(s.orig.trim())}" style="flex:1;min-width:140px"><button class="btn sec small" data-op="outra">Usar</button></div>
+      <div class="row" style="margin-top:8px"><button class="btn sec small" data-op="manter">Manter como está</button>${s.palavra ? '<button class="btn sec small" data-op="dic" title="Esta palavra deixa de ser marcada neste computador">Adicionar ao dicionário</button>' : ''}</div>`;
+    pop.classList.remove('hidden');
+    const r = sp.getBoundingClientRect(), box = q('.cor-box').getBoundingClientRect();
+    pop.style.left = Math.max(8, Math.min(r.left - box.left, box.width - 340)) + 'px';
+    pop.style.top = (r.bottom - box.top + 6) + 'px';
+    pop.onclick = ev => {
+      const b = ev.target.closest('[data-op]'); if (!b) return;
+      const op = b.dataset.op;
+      snapshot();
+      if (op === 'manter'){ C().sugs.splice(k, 1); }
+      else if (op === 'dic'){ corExtraAdd(s.palavra); const c = C(); c.sugs = c.sugs.filter(o => o.palavra !== s.palavra); }
+      else if (op === 'outra'){ const v = q('#cor-outra').value; aplicar(k, s.orig.endsWith('\n') && !v.endsWith('\n') && v ? v + '\n' : v); }
+      else aplicar(k, s.opts[+op]);
+      render();
+    };
+    setTimeout(() => { const i = q('#cor-outra'); if (i && !s.opts.length) i.focus(); }, 0);
+  });
+  q('#cor-vdesc').onchange = render;
+  ov.addEventListener('click', async e => {
+    const b = e.target.closest('[data-a]'); const tab = e.target.closest('[data-campo]');
+    if (tab){ e.preventDefault(); if (C().livre){ C().texto = q('#cor-ta').value; C().livre = false; analisarCampo(); } cur = +tab.dataset.campo; render(); return; }
+    if (!b) return;
+    const a = b.dataset.a, c = C();
+    if (a === 'fechar'){ if (b.closest('.cor-head') || confirm('Fechar o corretor sem salvar as correções?')) fechar(); }
+    else if (a === 'altas' || a === 'todas'){
+      snapshot();
+      const alvo = c.sugs.map((s, k) => ({ s, k })).filter(x => x.s.opts.length && (a === 'todas' ? x.s.conf !== 'desc' : x.s.conf === 'alta'));
+      for (let i = alvo.length - 1; i >= 0; i--) aplicar(alvo[i].k, alvo[i].s.opts[0]);
+      render();
+    }
+    else if (a === 'desfazer'){ const h = c.hist.pop(); if (h){ const o = JSON.parse(h); c.texto = o.t; c.sugs = o.s; c.feitos = o.f; render(); } }
+    else if (a === 'livre'){
+      if (c.livre){ snapshot(); c.texto = q('#cor-ta').value; c.livre = false; analisarCampo(); }
+      else c.livre = true;
+      render();
+    }
+    else if (a === 'orig'){ try{ await original(); }catch(err){ alert('Não foi possível abrir o original: ' + err.message); } }
+    else if (a === 'salvar'){
+      if (c.livre){ c.texto = q('#cor-ta').value; }
+      b.disabled = true;
+      try{ await aoSalvar(st.map(x => x.texto.replace(/[^\S\n]+\n/g, '\n').trim()), { conferido: !!(q('#cor-conf') && q('#cor-conf').checked) }); fechar(); }
+      catch(err){ alert('Erro ao salvar: ' + err.message); b.disabled = false; }
+    }
+  });
+
+  corCarregar().then(() => {
+    if (!aberto) return;
+    q('#cor-st').textContent = 'Analisando o texto…';
+    setTimeout(() => { st.forEach((c, i) => { cur = i; analisarCampo(); }); cur = 0; render(); }, 30);
+  }).catch(err => { q('#cor-st').textContent = 'Erro: ' + err.message; });
+}
+
+/* --- aba "Corretor" para colar qualquer texto --- */
+function viewCorretor(){
+  $('#main').innerHTML = bannerPend() + `
+  <div class="card">
+    <h3>Corretor de texto</h3>
+    <p style="margin-top:0">Cole aqui um texto lido de documento escaneado. O corretor marca as palavras com provável erro de leitura e sugere a correção. Nada é alterado sem você aceitar.</p>
+    <textarea id="cr-txt" placeholder="Cole o texto aqui">${esc(S.corretorTexto || '')}</textarea>
+    <div class="row" style="margin-top:12px"><button class="btn" id="cr-go">Corrigir texto</button><button class="btn sec" id="cr-copy">Copiar texto</button><button class="btn sec" id="cr-clear">Limpar</button><span class="msg" id="cr-msg"></span></div>
+    <p class="hint">Para corrigir uma lei já cadastrada, abra a lei e use o botão <b>Corrigir texto</b>${isAdmin() ? '' : ' (disponível para administradores)'}. O corretor usa um dicionário de português e o vocabulário das leis do município. Ele não adivinha palavras ilegíveis: nesses casos, confira no PDF original.</p>
+  </div>`;
+  const ta = $('#cr-txt');
+  ta.oninput = () => { S.corretorTexto = ta.value; };
+  $('#cr-go').onclick = () => {
+    if (!ta.value.trim()){ $('#cr-msg').textContent = 'Cole um texto primeiro.'; return; }
+    abrirCorretor({ campos: [{ nome: 'Texto', texto: ta.value }], rotuloSalvar: 'Usar texto corrigido',
+      aoSalvar: async ([t]) => { ta.value = t; S.corretorTexto = t; $('#cr-msg').className = 'msg ok'; $('#cr-msg').textContent = 'Texto corrigido. Use "Copiar texto" para levar para outro lugar.'; } });
+  };
+  $('#cr-copy').onclick = async () => { try{ await navigator.clipboard.writeText(ta.value); $('#cr-msg').className = 'msg ok'; $('#cr-msg').textContent = 'Copiado.'; }catch(_){ ta.select(); document.execCommand('copy'); } };
+  $('#cr-clear').onclick = () => { ta.value = ''; S.corretorTexto = ''; };
 }
 
 /* ================= usuários ================= */
