@@ -105,6 +105,11 @@ table.tbl th{color:var(--muted);font-weight:600;font-size:12.5px;text-transform:
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .drop{border:2px dashed var(--line);border-radius:9px;padding:14px;text-align:center;color:var(--muted);font-size:14px}
 .drop.over{border-color:var(--acc);background:var(--acc-soft)}
+.prog{height:10px;background:var(--bg);border-radius:6px;overflow:hidden;margin:10px 0 6px}
+.prog-bar{height:100%;width:0;background:var(--acc);transition:width .3s}
+.imp-tbl td{vertical-align:top} .imp-tbl input,.imp-tbl select{padding:6px 7px}
+.imp-tbl tr.off td{opacity:.55} .imp-tbl tr.imp-txt td{background:var(--bg)}
+.imp-tbl tr.imp-txt textarea{min-height:320px}
 @media print{
   header.top,nav.tabs,.det-actions,.banner,.matchnav,#back-link{display:none!important}
   body{background:#fff} .card{border:none;padding:0} mark{background:none}
@@ -310,6 +315,7 @@ function renderTabs(cur){
   const t = [['#/leis','Leis',nL],['#/decretos','Decretos',nD]];
   if (isAdmin()){
     t.push(['#/incluir','Incluir norma',null]);
+    t.push(['#/importar','Importar PDF',null]);
     t.push(['#/usuarios','Usuários',null]);
     t.push(['#/publicar','Publicar alterações', (S.pendente||S.usuariosAlterados) ? '!' : null]);
   }
@@ -326,17 +332,18 @@ function bannerPend(){
 
 function route(){
   const h = location.hash || '#/leis';
-  const m = h.match(/^#\/(leis|decretos|ver|incluir|editar|usuarios|publicar)(?:\/(.*))?$/);
+  const m = h.match(/^#\/(leis|decretos|ver|incluir|editar|usuarios|publicar|importar)(?:\/(.*))?$/);
   const pg = m ? m[1] : 'leis', arg = m && m[2] ? decodeURIComponent(m[2]) : '';
-  const tabOf = {leis:'#/leis',decretos:'#/decretos',ver:null,incluir:'#/incluir',editar:'#/incluir',usuarios:'#/usuarios',publicar:'#/publicar'};
+  const tabOf = {leis:'#/leis',decretos:'#/decretos',ver:null,incluir:'#/incluir',editar:'#/incluir',usuarios:'#/usuarios',publicar:'#/publicar',importar:'#/importar'};
   let tab = tabOf[pg];
   if (pg==='ver'){ const it = S.dados.itens.find(i=>i.id===arg); tab = it && it.kind==='decreto' ? '#/decretos' : '#/leis'; }
   renderTabs(tab);
   window.scrollTo(0,0);
-  if ((pg==='incluir'||pg==='editar'||pg==='usuarios'||pg==='publicar') && !isAdmin()){ location.hash='#/leis'; return; }
+  if ((pg==='incluir'||pg==='editar'||pg==='usuarios'||pg==='publicar'||pg==='importar') && !isAdmin()){ location.hash='#/leis'; return; }
   if (pg==='leis') return viewBusca('lei');
   if (pg==='decretos') return viewBusca('decreto');
   if (pg==='ver') return viewNorma(arg);
+  if (pg==='importar') return viewImportar();
   if (pg==='incluir') return viewForm(null, arg);
   if (pg==='editar') return viewForm(arg);
   if (pg==='usuarios') return viewUsuarios();
@@ -423,7 +430,7 @@ function viewBusca(kind){
     const lst = filtrar(kind), termos = parseTermos(b.q);
     const lim = S.limite[kind];
     const filtros = b.q || b.num || b.ano || (kind==='lei' && b.tipo);
-    $('#res-count').textContent = total === 0 ? '' : (filtros ? `${lst.length} de ${total} ${kind==='lei'?(lst.length===1?'lei encontrada':'leis encontradas'):(lst.length===1?'decreto encontrado':'decretos encontrados')}` : `${total} ${kind==='lei'?(total===1?'lei cadastrada':'leis cadastradas'):(total===1?'decreto cadastrado':'decretos cadastrados')}`);
+    $('#res-count').textContent = total === 0 ? '' : (filtros ? `${kind==='lei'?(lst.length===1?'Encontrada':'Encontradas'):(lst.length===1?'Encontrado':'Encontrados')} ${lst.length} de ${total} ${kind==='lei'?(total===1?'lei':'leis'):(total===1?'decreto':'decretos')}` : `${total} ${kind==='lei'?(total===1?'lei cadastrada':'leis cadastradas'):(total===1?'decreto cadastrado':'decretos cadastrados')}`);
     if (total === 0){
       $('#res').innerHTML = `<div class="card empty">Nenhum decreto cadastrado ainda.${isAdmin()?`<br><br><a class="btn" href="#/incluir/decreto">Incluir o primeiro decreto</a>`:''}</div>`; return;
     }
@@ -571,7 +578,7 @@ function viewForm(editId, kindHint){
   $('#main').innerHTML = bannerPend() + `
   <div class="card">
     <h3>${it ? 'Editar ' + esc(titulo(it)) : 'Incluir nova norma'}</h3>
-    ${it ? '' : `<div class="drop" id="drop">Para preencher automaticamente, arraste aqui o arquivo <b>.docx</b> da norma ou <label style="display:inline;color:var(--acc);cursor:pointer;text-decoration:underline">escolha o arquivo<input type="file" id="docx" accept=".docx,.txt" class="hidden"></label>.<br><span class="hint">Arquivos .doc antigos não são lidos no navegador: abra no Word, copie o texto e cole no campo abaixo.</span></div><div class="msg" id="docx-msg"></div><br>`}
+    ${it ? '' : `<div class="drop" id="drop">Para preencher automaticamente, arraste aqui o arquivo <b>.docx</b> da norma ou <label style="display:inline;color:var(--acc);cursor:pointer;text-decoration:underline">escolha o arquivo<input type="file" id="docx" accept=".docx,.txt" class="hidden"></label>.<br><span class="hint">Arquivos .doc antigos não são lidos no navegador: abra no Word, copie o texto e cole no campo abaixo.<br>Tem um <b>PDF com várias leis</b>? Use <a href="#/importar">Importar PDF</a>.</span></div><div class="msg" id="docx-msg"></div><br>`}
     <div class="form-grid">
       <div><label for="e-esp">Espécie</label><select id="e-esp">
         <option value="ordinaria">Lei Ordinária</option><option value="complementar">Lei Complementar</option><option value="decreto">Decreto</option></select></div>
@@ -649,6 +656,374 @@ function viewForm(editId, kindHint){
     await salvarLocal(`${it ? 'Editou' : 'Incluiu'} ${titulo(novo)}${novoAnexo ? ' (com PDF)' : ''}`);
     location.hash = '#/ver/' + encodeURIComponent(novo.id);
   };
+}
+
+/* ================= importar PDF com várias normas ================= */
+function loadScript(src){
+  return new Promise((res, rej) => {
+    if (document.querySelector(`script[data-src="${src}"]`)) return res();
+    const s = document.createElement('script'); s.src = src; s.dataset.src = src;
+    s.onload = res; s.onerror = () => rej(new Error('não foi possível carregar ' + src + '. Confira se a pasta lib foi enviada ao GitHub.'));
+    document.head.appendChild(s);
+  });
+}
+
+const IMP = { file:null, bytes:null, paginas:[], normas:[], orfas:[], cancelar:false, rodando:false };
+
+const RE_CAB = /^\s*(LEI|DECRETO)\s*(MUNICIPAL|COMPLEMENTAR)?\s*(MUNICIPAL|COMPLEMENTAR)?\s*N\s*[°º.o]*\s*[.:]?\s*0*(\d{1,5})\s*[\/\-]\s*(\d{4})(.*)$/i;
+const RE_PROMULG = /prefeit[oa]\s+(constitucional|municipal)|faz\s+saber|sanciona|decreta\s*:|no\s+uso\s+(de\s+)?suas\s+atribui|no\s+uso\s+das\s+atribui/i;
+const RE_TIMBRE = /^(ESTADO DA PARA[IÍ]BA|PREFEITURA MUNICIPAL DE CACIMBA DE DENTRO|MUNIC[IÍ]PIO DE CACIMBA DE DENTRO|GABINETE DO PREFEITO|C[AÂ]MARA MUNICIPAL DE CACIMBA DE DENTRO)\s*[.\-–—]?\s*$/i;
+
+function dataDe(s){
+  const d = norm(s).match(/(\d{1,2})\s*(?:º|o)?\s*de\W*\s*([a-z]+)\W*\s*de\s*(\d{4})/);
+  if (!d) return '';
+  const mi = MESES.map(norm).indexOf(d[2]);
+  return mi >= 0 ? `${d[3]}-${String(mi+1).padStart(2,'0')}-${d[1].padStart(2,'0')}` : '';
+}
+
+/* --- leitura das páginas --- */
+async function textoDaPagina(page){
+  const tc = await page.getTextContent();
+  const linhas = []; let atual = '', ultY = null, ultX = null;
+  for (const it of tc.items){
+    if (!('str' in it)) continue;
+    const y = Math.round(it.transform[5]), x = it.transform[4];
+    if (ultY !== null && Math.abs(y - ultY) > 3){ linhas.push(atual); atual = ''; ultX = null; }
+    if (atual && ultX !== null && x > ultX + 1 && !/\s$/.test(atual) && !/^\s/.test(it.str)) atual += ' ';
+    atual += it.str; ultY = y; ultX = x + (it.width || 0);
+    if (it.hasEOL && atual.trim()){ linhas.push(atual); atual = ''; ultY = null; ultX = null; }
+  }
+  if (atual) linhas.push(atual);
+  return linhas.map(l => l.replace(/\s+/g,' ').trim()).join('\n');
+}
+
+let ocrSched = null;
+async function ocrPreparar(){
+  if (ocrSched) return ocrSched;
+  await loadScript('lib/tesseract.min.js');
+  const sched = Tesseract.createScheduler();
+  const n = Math.min(2, Math.max(1, (navigator.hardwareConcurrency||2) - 1));
+  for (let i = 0; i < n; i++){
+    const w = await Tesseract.createWorker('por', 1, { workerPath:'lib/worker.min.js', corePath:'lib/tesseract-core', langPath:'lib/lang', workerBlobURL:false });
+    await w.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '0' });
+    sched.addWorker(w);
+  }
+  ocrSched = sched; return sched;
+}
+
+async function ocrDaPagina(page){
+  const vp = page.getViewport({ scale: 1 });
+  const escala = Math.min(3, 1800 / vp.width);
+  const v = page.getViewport({ scale: escala });
+  const cv = document.createElement('canvas'); cv.width = Math.round(v.width); cv.height = Math.round(v.height);
+  const ctx = cv.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+  await page.render({ canvasContext: ctx, viewport: v }).promise;
+  const sched = await ocrPreparar();
+  const r = await sched.addJob('recognize', cv);
+  cv.width = cv.height = 0;
+  return r.data.text || '';
+}
+
+/* --- limpeza do texto --- */
+function limparLinhas(txt, ocr){
+  const out = [];
+  for (let l of txt.replace(/\f/g,'').split('\n')){
+    let s = l.trim().replace(/^[|;:'"‘’“”]+\s*/, '');
+    if (RE_TIMBRE.test(s)) continue;
+    if (ocr && s && !RE_CAB.test(s)){
+      const alnum = [...s].filter(c => /[\p{L}\p{N}]/u.test(c)).length;
+      if ((s.length < 3 || alnum < s.length * 0.45) && !/^(Art|§|\d+[º°]|[IVX]+\s*[-–—])/.test(s)) continue;
+    }
+    out.push(s);
+  }
+  return out;
+}
+
+function refluir(linhas, ocr){
+  const paras = []; let cur = '';
+  for (let s of linhas){
+    if (!s) continue;
+    s = s.replace(/^\S{1,4}\s+(?=(O PREFEITO|Art\.?\s*\d|Art\s))/, '');
+    let novo = /^(Art(igo)?\.?\s*\d|§|\$\s*\d|8\s*\d+º|Par[aá]grafo|[IVX]+\s*[-–—)]|[a-z]\)|ANEXO|CAP[IÍ]TULO|T[IÍ]TULO|SE[CÇ][AÃ]O|LEI |DECRETO |GABINETE|O\s+PREFEIT)/.test(s);
+    if (cur && (novo || /[.:;]$/.test(cur) || RE_CAB.test(cur))){ paras.push(cur); cur = s; }
+    else { cur = cur ? cur + ' ' + s : s; cur = cur.replace(/(\p{L})- (\p{L})/gu, '$1$2'); }
+  }
+  if (cur) paras.push(cur);
+  return paras.map(p => ocr ? p.replace(/^(?:[o0O]\s*)?8\s?(\d{1,2}\s?[º°o])/, '§ $1').replace(/^(?:[o0O]\s*)?\$\s?(\d{1,2}\s?[º°o])/, '§ $1').replace(/\$\$/g,'§§').replace(/(\s)\$\s?(?=\d{1,2}\s?[º°])/g, '$1§ ') : p).join('\n\n');
+}
+
+/* linhas que se repetem no topo/rodapé da maioria das páginas (timbre, endereço) */
+function linhasRepetidas(paginas){
+  if (paginas.length < 3) return new Set();
+  const cont = new Map();
+  for (const p of paginas){
+    const ls = p.texto.split('\n').map(s=>s.trim()).filter(Boolean);
+    const borda = new Set([...ls.slice(0,4), ...ls.slice(-4)].map(norm));
+    for (const l of borda) cont.set(l, (cont.get(l)||0) + 1);
+  }
+  const rep = new Set();
+  for (const [l, n] of cont) if (n >= Math.max(3, paginas.length * 0.6) && l.length < 160 && !RE_CAB.test(l)) rep.add(l);
+  return rep;
+}
+
+/* --- separação das normas --- */
+function separarNormas(paginas){
+  const rep = linhasRepetidas(paginas);
+  const todas = [];  // {pag, s}
+  paginas.forEach((p, pi) => {
+    const ls = limparLinhas(p.texto, p.ocr).filter(s => !rep.has(norm(s)));
+    let naoVazias = 0;
+    ls.forEach(s => { todas.push({ pag: pi, s, topo: s ? naoVazias < 15 : true }); if (s) naoVazias++; });
+    todas.push({ pag: pi, s: '' });
+  });
+  const inicios = [];
+  for (let i = 0; i < todas.length; i++){
+    const m = todas[i].s.match(RE_CAB);
+    if (!m) continue;
+    const prox = todas.slice(i + 1, i + 30).map(x => x.s).join(' ');
+    if (RE_PROMULG.test(prox) || todas[i].topo) inicios.push({ i, m });
+  }
+  const normas = [];
+  inicios.forEach((ini, k) => {
+    const fim = k + 1 < inicios.length ? inicios[k+1].i : todas.length;
+    const trecho = todas.slice(ini.i, fim);
+    const linhas = trecho.map(x => x.s);
+    const m = ini.m;
+    const especie = /^DECRETO/i.test(m[1]) ? 'decreto' : (/COMPLEMENTAR/i.test((m[2]||'') + (m[3]||'')) ? 'complementar' : 'ordinaria');
+    const em = [];
+    for (const s of linhas.slice(1)){
+      if (RE_PROMULG.test(s) || /^Art/i.test(s)) break;
+      if (s) em.push(s);
+      if (em.join(' ').length > 700) break;
+    }
+    let ementa = em.join(' ').replace(/\s+/g,' ').replace(/(\p{L})- (\p{L})/gu, '$1$2').replace(/\s\*\s/g,' ').replace(/-—/g,'–').trim();
+    let data = dataDe(m[6] || '');
+    if (!data){
+      const corrido = linhas.join(' ').replace(/\s+/g,' ');
+      const ds = [...corrido.matchAll(/(?:GABINETE|Cacimba de Dentro|PB)[^]{0,90}?(\d{1,2}\s*(?:º)?\s*de\s*[A-Za-zÇç]+\s*de\s*\d{4})/gi)];
+      if (ds.length) data = dataDe(ds[ds.length-1][1]);
+    }
+    const porPag = new Map();
+    trecho.forEach(x => porPag.set(x.pag, (porPag.get(x.pag)||0) + x.s.replace(/[^\p{L}\p{N}]/gu,'').length));
+    const pags = [...porPag.keys()].filter(pg => pg === trecho[0].pag || porPag.get(pg) >= 80);
+    const ocr = pags.some(pg => paginas[pg].ocr);
+    normas.push({
+      especie, numero: +m[4], ano: +m[5], data, ementa,
+      texto: refluir(linhas, ocr), ocr, paginas: pags.length ? pags : [trecho[0].pag], sel: true, status: 'nova'
+    });
+  });
+  const primeira = inicios.length ? todas[inicios[0].i].pag : paginas.length;
+  const orfas = [];
+  for (let pi = 0; pi < primeira; pi++) if (paginas[pi].texto.trim()) orfas.push(pi);
+  return { normas, orfas };
+}
+
+function marcarStatus(){
+  const vistos = new Set();
+  for (const n of IMP.normas){
+    const it = { kind: n.especie === 'decreto' ? 'decreto' : 'lei', tipo: n.especie, numero: n.numero, ano: n.ano };
+    const id = makeId(it), chave = id;
+    if (vistos.has(chave)){ n.status = 'repetida'; }
+    else if (S.dados.itens.some(x => x.id === id)){ n.status = 'existe'; }
+    else n.status = 'nova';
+    if (n._statusInicial === undefined){ n._statusInicial = n.status; n.sel = n.status === 'nova'; }
+    vistos.add(chave);
+  }
+}
+
+const fmtPags = ps => { const s = ps.map(p=>p+1); const out = []; let a = s[0], b = s[0];
+  for (let i = 1; i <= s.length; i++){ if (s[i] === b + 1) b = s[i]; else { out.push(a === b ? `${a}` : `${a}–${b}`); a = b = s[i]; } } return out.join(', '); };
+
+function viewImportar(){
+  $('#main').innerHTML = bannerPend() + `
+  <div class="card">
+    <h3>Importar PDF com várias leis ou decretos</h3>
+    <p style="margin-top:0">Escolha um PDF. O sistema lê cada página, encontra onde começa cada norma pelo cabeçalho (ex.: <i>LEI MUNICIPAL Nº 230/2026</i>, <i>LEI COMPLEMENTAR Nº 008/2022</i>, <i>DECRETO Nº 15/2026</i>) e mostra a lista para você conferir antes de importar.</p>
+    <div class="drop" id="imp-drop">Arraste o PDF aqui ou <label style="display:inline;color:var(--acc);cursor:pointer;text-decoration:underline">escolha o arquivo<input type="file" id="imp-file" accept="application/pdf,.pdf" class="hidden"></label></div>
+    <p class="hint">PDF com texto (exportado do Word) é lido em segundos. PDF escaneado passa por reconhecimento de imagem: leva de 5 a 15 segundos por página, e o texto pode ter pequenos erros. Mantenha esta aba aberta até terminar.</p>
+    <div id="imp-prog" class="hidden"><div class="prog"><div class="prog-bar" id="imp-bar"></div></div><div class="row" style="justify-content:space-between"><span id="imp-st" class="hint"></span><button class="btn danger small" id="imp-cancel">Cancelar</button></div></div>
+    <div class="msg" id="imp-msg"></div>
+  </div>
+  <div id="imp-rev"></div>`;
+  const iniciar = f => { if (!IMP.rodando) processarPDF(f); };
+  $('#imp-file').addEventListener('change', e => { if (e.target.files[0]) iniciar(e.target.files[0]); });
+  const dz = $('#imp-drop');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); const f = e.dataTransfer.files[0]; if (f) iniciar(f); });
+  $('#imp-cancel').onclick = () => { IMP.cancelar = true; $('#imp-st').textContent = 'Cancelando…'; };
+  if (IMP.normas.length && IMP.file) renderRevisao();
+}
+
+async function processarPDF(file){
+  const msg = $('#imp-msg'); msg.className = 'msg'; msg.textContent = '';
+  if (!/\.pdf$/i.test(file.name) && file.type !== 'application/pdf'){ msg.className='msg err'; msg.textContent = 'Escolha um arquivo PDF.'; return; }
+  IMP.rodando = true; IMP.cancelar = false; IMP.file = file; IMP.normas = []; IMP.orfas = []; $('#imp-rev').innerHTML = '';
+  $('#imp-prog').classList.remove('hidden');
+  const st = t => { const el = $('#imp-st'); if (el) el.textContent = t; };
+  const bar = p => { const el = $('#imp-bar'); if (el) el.style.width = (p*100).toFixed(1) + '%'; };
+  try{
+    st('Carregando leitor de PDF…'); bar(0);
+    await loadScript('lib/pdf.min.js');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'lib/pdf.worker.min.js';
+    IMP.bytes = new Uint8Array(await file.arrayBuffer());
+    const doc = await pdfjsLib.getDocument({ data: IMP.bytes.slice() }).promise;
+    const N = doc.numPages, paginas = new Array(N);
+    let feitas = 0, nOcr = 0; const t0 = Date.now();
+    const tarefas = [];
+    for (let i = 1; i <= N; i++){
+      if (IMP.cancelar) break;
+      const page = await doc.getPage(i);
+      const txt = await textoDaPagina(page);
+      if (txt.replace(/\s/g,'').length >= 40){ paginas[i-1] = { texto: txt, ocr: false }; feitas++; bar(feitas/N); st(`Lendo página ${feitas} de ${N}…`); page.cleanup(); continue; }
+      nOcr++;
+      if (nOcr === 1) st('Preparando o reconhecimento de imagem (só na primeira vez demora um pouco)…');
+      tarefas.push(ocrDaPagina(page).then(t => {
+        paginas[i-1] = { texto: t, ocr: true }; feitas++; bar(feitas/N);
+        const seg = (Date.now() - t0) / 1000, falta = Math.round(seg / feitas * (N - feitas));
+        st(`Reconhecendo texto: ${feitas} de ${N} páginas (digitalizadas: ${nOcr})${N - feitas > 0 ? ` · faltam cerca de ${falta < 60 ? falta + ' s' : Math.round(falta/60) + ' min'}` : ''}`);
+        page.cleanup();
+      }));
+      if (tarefas.length >= 4){ await Promise.all(tarefas.splice(0)); }
+    }
+    await Promise.all(tarefas);
+    if (IMP.cancelar){ st('Importação cancelada.'); IMP.normas = []; return; }
+    for (let i = 0; i < N; i++) if (!paginas[i]) paginas[i] = { texto:'', ocr:true };
+    IMP.paginas = paginas;
+    const r = separarNormas(paginas);
+    IMP.normas = r.normas; IMP.orfas = r.orfas;
+    marcarStatus();
+    $('#imp-prog').classList.add('hidden');
+    if (!IMP.normas.length){ msg.className='msg err'; msg.textContent = `Li ${N} páginas, mas não encontrei nenhum cabeçalho de lei ou decreto (ex.: "LEI MUNICIPAL Nº 123/2024"). Se o PDF for uma única norma sem cabeçalho, use "Incluir norma" e cole o texto.`; return; }
+    renderRevisao();
+  }catch(e){
+    console.error(e); msg.className='msg err'; msg.textContent = 'Erro ao ler o PDF: ' + e.message;
+  }finally{
+    IMP.rodando = false; const pr = $('#imp-prog'); if (pr && !IMP.cancelar && IMP.normas.length) pr.classList.add('hidden');
+  }
+}
+
+function renderRevisao(){
+  if (!$('#imp-rev')) return;
+  marcarStatus();
+  const ns = IMP.normas, sel = ns.filter(n=>n.sel).length;
+  const cont = s => ns.filter(n=>n.status===s).length;
+  const badge = n => n.status === 'nova' ? '<span class="badge b-decreto">nova</span>'
+    : n.status === 'existe' ? '<span class="badge b-scan" title="Já existe uma norma com esta espécie, número e ano. Se marcar, a cadastrada será substituída.">já cadastrada</span>'
+    : '<span class="badge b-scan" title="Esta norma aparece mais de uma vez neste PDF.">repetida no PDF</span>';
+  $('#imp-rev').innerHTML = `
+  <div class="card">
+    <div class="row" style="justify-content:space-between"><h3 style="margin:0">Encontrei ${ns.length} ${ns.length===1?'norma':'normas'} em ${IMP.paginas.length} páginas</h3>
+      <span class="hint">${esc(IMP.file.name)}</span></div>
+    <p class="hint">${cont('nova')} ${cont('nova')===1?'nova':'novas'}${cont('existe')?`, ${cont('existe')} já ${cont('existe')===1?'cadastrada (desmarcada)':'cadastradas (desmarcadas)'}`:''}${cont('repetida')?`, ${cont('repetida')} ${cont('repetida')===1?'repetida':'repetidas'} no PDF (${cont('repetida')===1?'desmarcada':'desmarcadas'})`:''}${IMP.paginas.some(p=>p.ocr)?'. Páginas digitalizadas foram lidas por reconhecimento de imagem: confira número, data e ementa':''}.
+    Corrija o que precisar direto na tabela. Clique em <b>Texto</b> para ver e editar o texto completo.</p>
+    ${IMP.orfas.length?`<div class="det-obs">⚠️ ${IMP.orfas.length===1?'A página':'As páginas'} ${fmtPags(IMP.orfas)} ${IMP.orfas.length===1?'vem':'vêm'} antes do primeiro cabeçalho e não ${IMP.orfas.length===1?'foi incluída':'foram incluídas'} em nenhuma norma (ex.: capa, ofício ou o fim de uma lei anterior).</div>`:''}
+    <div style="overflow-x:auto"><table class="tbl imp-tbl"><thead><tr>
+      <th><input type="checkbox" id="imp-all" ${sel===ns.length?'checked':''} title="Marcar todas"></th><th>Situação</th><th>Espécie</th><th>Nº</th><th>Ano</th><th>Data</th><th>Ementa</th><th>Págs.</th><th></th></tr></thead><tbody>
+    ${ns.map((n,i)=>`<tr data-i="${i}" class="${n.sel?'':'off'}">
+      <td><input type="checkbox" data-k="sel" ${n.sel?'checked':''}></td>
+      <td>${badge(n)}${n.ocr?'<br><span class="hint">digitalizada</span>':''}</td>
+      <td><select data-k="especie"><option value="ordinaria" ${n.especie==='ordinaria'?'selected':''}>Lei Ordinária</option><option value="complementar" ${n.especie==='complementar'?'selected':''}>Lei Complementar</option><option value="decreto" ${n.especie==='decreto'?'selected':''}>Decreto</option></select></td>
+      <td><input type="number" data-k="numero" value="${n.numero}" style="width:80px"></td>
+      <td><input type="number" data-k="ano" value="${n.ano}" style="width:80px"></td>
+      <td><input type="date" data-k="data" value="${esc(n.data)}" style="width:145px"></td>
+      <td style="min-width:260px"><textarea class="short" data-k="ementa" rows="2" style="min-height:54px">${esc(n.ementa)}</textarea></td>
+      <td style="white-space:nowrap">${fmtPags(n.paginas)}</td>
+      <td style="white-space:nowrap"><button class="btn sec small" data-t="${i}" type="button">Texto</button> <button class="btn sec small" data-v="${i}" type="button" title="Abrir as páginas originais desta norma">PDF</button></td></tr>
+      <tr class="imp-txt hidden" id="imp-t-${i}"><td colspan="9"><textarea data-i="${i}" data-k="texto">${esc(n.texto)}</textarea></td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="msg" id="imp-msg2"></div>
+    <div class="row" style="margin-top:14px"><button class="btn" id="imp-go">Importar ${sel} ${sel===1?'norma selecionada':'normas selecionadas'}</button><button class="btn sec" id="imp-novo" type="button">Escolher outro PDF</button></div>
+    <p class="hint">Cada norma importada recebe como anexo as suas páginas do PDF original (botão "Ver original"). Depois, publique na aba "Publicar alterações".</p>
+  </div>`;
+  const tb = $('#imp-rev');
+  tb.oninput = e => {
+    const k = e.target.dataset.k; if (!k) return;
+    const tr = e.target.closest('[data-i]'); const i = +(e.target.dataset.i ?? tr.dataset.i); const n = IMP.normas[i];
+    if (k === 'sel') n.sel = e.target.checked;
+    else if (k === 'numero' || k === 'ano') n[k] = parseInt(e.target.value, 10) || 0;
+    else n[k] = e.target.value;
+    if (k === 'data' && n.data) { n.ano = +n.data.slice(0,4); const a = tr.querySelector('[data-k=ano]'); if (a) a.value = n.ano; }
+    if (k === 'sel' || k === 'especie' || k === 'numero' || k === 'ano' || k === 'data') atualizarRevisao();
+  };
+  tb.querySelectorAll('[data-t]').forEach(b => b.onclick = () => $('#imp-t-' + b.dataset.t).classList.toggle('hidden'));
+  tb.querySelectorAll('[data-v]').forEach(b => b.onclick = async () => {
+    try{
+      await loadScript('lib/pdf-lib.min.js');
+      const src = await PDFLib.PDFDocument.load(IMP.bytes, { ignoreEncryption: true });
+      const out = await PDFLib.PDFDocument.create();
+      (await out.copyPages(src, IMP.normas[+b.dataset.v].paginas)).forEach(p => out.addPage(p));
+      const url = URL.createObjectURL(new Blob([await out.save()], {type:'application/pdf'}));
+      window.open(url, '_blank'); setTimeout(() => URL.revokeObjectURL(url), 120000);
+    }catch(e){ alert('Não foi possível abrir: ' + e.message); }
+  });
+  $('#imp-all').onchange = e => { IMP.normas.forEach(n => n.sel = e.target.checked); renderRevisao(); };
+  $('#imp-novo').onclick = () => { IMP.normas = []; IMP.file = null; viewImportar(); };
+  $('#imp-go').onclick = importarSelecionadas;
+}
+
+function atualizarRevisao(){
+  marcarStatus();
+  document.querySelectorAll('#imp-rev tr[data-i]').forEach(tr => {
+    const n = IMP.normas[+tr.dataset.i]; if (!n || tr.classList.contains('imp-txt')) return;
+    tr.classList.toggle('off', !n.sel);
+    const td = tr.children[1];
+    td.innerHTML = (n.status === 'nova' ? '<span class="badge b-decreto">nova</span>' : n.status === 'existe' ? '<span class="badge b-scan">já cadastrada</span>' : '<span class="badge b-scan">repetida no PDF</span>') + (n.ocr ? '<br><span class="hint">digitalizada</span>' : '');
+  });
+  const sel = IMP.normas.filter(n=>n.sel).length;
+  $('#imp-go').textContent = `Importar ${sel} ${sel===1?'norma selecionada':'normas selecionadas'}`;
+}
+
+async function importarSelecionadas(){
+  const m = $('#imp-msg2'); m.className = 'msg err';
+  const sel = IMP.normas.filter(n => n.sel);
+  if (!sel.length) return m.textContent = 'Nenhuma norma marcada.';
+  const ids = new Set();
+  for (const n of sel){
+    if (!n.numero || !n.ano || n.ano < 1900) return m.textContent = `Confira número e ano da linha com ementa "${n.ementa.slice(0,60)}…".`;
+    if (n.data && +n.data.slice(0,4) !== n.ano) return m.textContent = `${ESPECIE[n.especie]} nº ${n.numero}: o ano não confere com a data.`;
+    const it = { kind: n.especie==='decreto'?'decreto':'lei', tipo: n.especie, numero: n.numero, ano: n.ano };
+    const id = makeId(it);
+    if (ids.has(id)) return m.textContent = `${titulo(it)} está marcada duas vezes. Desmarque uma delas.`;
+    ids.add(id);
+  }
+  const subst = sel.filter(n => n.status === 'existe');
+  if (subst.length && !confirm(`${subst.length} ${subst.length===1?'norma marcada já está cadastrada e será substituída':'normas marcadas já estão cadastradas e serão substituídas'} pela versão deste PDF. Continuar?`)) return;
+  $('#imp-go').disabled = true; m.className = 'msg'; m.textContent = 'Separando as páginas de cada norma…';
+  try{
+    await loadScript('lib/pdf-lib.min.js');
+    const src = await PDFLib.PDFDocument.load(IMP.bytes, { ignoreEncryption: true });
+    let k = 0;
+    for (const n of sel){
+      k++; m.textContent = `Gravando ${k} de ${sel.length}…`;
+      const novo = { kind: n.especie==='decreto'?'decreto':'lei', numero: n.numero, ano: n.ano, data: n.data, ementa: n.ementa.trim(), texto: n.texto.trim(),
+        fonte: n.ocr ? 'digitalizada' : 'pdf', _novo: true,
+        obs: n.ocr ? 'Texto obtido por reconhecimento de imagem (norma digitalizada). Pode conter erros de leitura; confira no original.' : '' };
+      if (novo.kind === 'lei') novo.tipo = n.especie;
+      novo.id = makeId(novo);
+      const out = await PDFLib.PDFDocument.create();
+      const pgs = await out.copyPages(src, n.paginas);
+      pgs.forEach(p => out.addPage(p));
+      const bytes = await out.save();
+      const path = `anexos/${novo.id}-${Date.now().toString(36)}${k}.enc`;
+      const antigo = S.dados.itens.find(x => x.id === novo.id);
+      if (antigo && antigo.anexo && S.anexosPend[antigo.anexo]) delete S.anexosPend[antigo.anexo];
+      S.anexosPend[path] = await encryptBytes(S.key, bytes);
+      novo.anexo = path; novo.anexoNome = `${titulo(novo).replace(/[ºª]/g,'').replace(/\//g,'-')} (original).pdf`;
+      S.dados.itens = S.dados.itens.filter(x => x.id !== novo.id);
+      S.dados.itens.push(novo);
+    }
+    await salvarLocal(`Importou ${sel.length} ${sel.length===1?'norma':'normas'} do PDF "${IMP.file.name}"${subst.length?` (${subst.length} substituída${subst.length>1?'s':''})`:''}`);
+    const lista = sel.map(n => { const it = { kind: n.especie==='decreto'?'decreto':'lei', tipo: n.especie, numero: n.numero, ano: n.ano }; return `<li><a href="#/ver/${encodeURIComponent(makeId(it))}">${esc(titulo(it))}</a></li>`; }).join('');
+    IMP.normas = []; IMP.file = null; IMP.bytes = null; IMP.paginas = [];
+    renderTabs('#/importar');
+    $('#main').innerHTML = bannerPend() + `<div class="card"><h3>✓ ${sel.length} ${sel.length===1?'norma importada':'normas importadas'}</h3>
+      <p>Elas já aparecem na pesquisa deste navegador. Para valer para todos, vá em <a href="#/publicar">Publicar alterações</a>.</p>
+      <ul style="columns:2">${lista}</ul>
+      <div class="row"><a class="btn" href="#/publicar">Publicar alterações</a><a class="btn sec" href="#/importar">Importar outro PDF</a></div></div>`;
+  }catch(e){
+    console.error(e); m.className = 'msg err'; m.textContent = 'Erro ao importar: ' + e.message; $('#imp-go').disabled = false;
+  }
 }
 
 /* ================= usuários ================= */
@@ -733,7 +1108,7 @@ function viewPublicar(){
     <p>As alterações abaixo estão salvas só neste navegador. Para valerem para todos os usuários e computadores, baixe os arquivos e envie ao GitHub:</p>
     <ol class="steps">
       ${S.pendente?`<li>Baixe o <b>dados.enc</b>: <button class="btn small" id="p-dados">Baixar dados.enc</button></li>`:''}
-      ${anx.length?`<li>Baixe os anexos novos (${anx.length}): ${anx.map((p,i)=>`<button class="btn small sec" data-anx="${esc(p)}">${esc(p.replace('anexos/',''))}</button>`).join(' ')}</li>`:''}
+      ${anx.length?`<li>Baixe os anexos novos (${anx.length}): ${anx.length>1?`<button class="btn small" id="p-anx-all">Baixar todos os anexos</button> <span class="hint">(se o navegador perguntar, permita vários downloads)</span><br>`:''}${anx.map((p,i)=>`<button class="btn small sec" data-anx="${esc(p)}">${esc(p.replace('anexos/',''))}</button>`).join(' ')}</li>`:''}
       ${S.usuariosAlterados?`<li>Baixe o <b>usuarios.json</b>: <button class="btn small" id="p-users">Baixar usuarios.json</button></li>`:''}
       <li>No GitHub, abra o repositório, clique em <b>Add file › Upload files</b>, arraste ${[S.pendente?'o dados.enc':'', S.usuariosAlterados?'o usuarios.json':''].filter(Boolean).join(' e ')} e clique em <b>Commit changes</b>.</li>
       ${anx.length?`<li>Os anexos vão para a pasta <b>anexos</b>: no repositório, entre na pasta <b>anexos</b>, clique em <b>Add file › Upload files</b>, arraste os arquivos e clique em <b>Commit changes</b>.</li>`:''}
@@ -751,6 +1126,7 @@ function viewPublicar(){
     const limpo = JSON.stringify(pub, (k,v)=> k==='_n' ? undefined : v);
     baixar('dados.enc', await encryptBytes(S.key, await gz(enc.encode(limpo), 'c')));
   };
+  const pall = $('#p-anx-all'); if (pall) pall.onclick = async () => { for (const p of anx){ baixar(p.replace('anexos/',''), S.anexosPend[p]); await new Promise(r=>setTimeout(r,400)); } };
   document.querySelectorAll('[data-anx]').forEach(b => b.onclick = () => baixar(b.dataset.anx.replace('anexos/',''), S.anexosPend[b.dataset.anx]));
   const pu = $('#p-users'); if (pu) pu.onclick = () => baixar('usuarios.json', enc.encode(JSON.stringify(S.usuarios, null, 1)), 'application/json');
   const pk = $('#p-ok'); if (pk) pk.onclick = async () => {
